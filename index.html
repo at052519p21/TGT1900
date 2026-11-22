@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <style>
-:root{--red:#d62020;--blue:#1a5fd0;--line:#ccc;--mk:#e53935;--grid:#bcd6f2}
+:root{--red:#ff3333;--blue:#1a5fd0;--line:#ccc;--mk:#ff3333;--grid:#bcd6f2}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;color:#111;background:#fff;line-height:1.5;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
 :root{--serif:"Libre Baskerville",Georgia,"Times New Roman",serif}
@@ -117,7 +117,7 @@ td.ja{min-width:14em;font-size:14px}
 </div>
 <main id="view">
   <div id="bar"><button id="back">← 戻る</button><b id="ttl"></b>
-    <button class="ib" id="sheetBtn" aria-label="赤シート"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#d62020" stroke="#a01010"/><path d="M9 9h6M9 13h6" stroke="#fff"/></svg></button></div>
+    <button class="ib" id="sheetBtn" aria-label="赤シート"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#ff3333" stroke="#ff3333"/><path d="M9 9h6M9 13h6" stroke="#fff"/></svg></button></div>
   <div class="wrap"><table id="tbl"><tbody id="body"></tbody></table></div>
 </main>
 
@@ -239,7 +239,7 @@ const MK='.hHead .mkHead,.hMean .mkMean,.hMain .mkMain,.hEx .mkEx,.hBlank .mkBla
 document.head.insertAdjacentHTML('beforeend',`<style>
 :is(${MK}){background:var(--mk);border-radius:3px;padding:0 2px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
 :is(${MK}):not(.rv),:is(${MK}):not(.rv) *{color:transparent}
-:is(${MK}).rv{background:rgba(229,57,53,.15)}</style>`);
+:is(${MK}).rv{background:rgba(255,51,51,.15)}</style>`);
 // マーカーをタップ→薄くなって見える。もう一度タップ、または別の場所をタップ→元に戻る
 document.addEventListener('click',e=>{
   if(cur!=='view') return;
