@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
 <style>
-:root{--red:#d62020;--blue:#1a5fd0;--line:#ccc;--mk:#e53935}
+:root{--red:#d62020;--blue:#1a5fd0;--line:#ccc;--mk:#e53935;--grid:#bcd6f2}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 body{margin:0;color:#111;background:#fff;line-height:1.5;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
 :root{--serif:"Libre Baskerville",Georgia,"Times New Roman",serif}
@@ -65,11 +65,12 @@ li.open>.row>.tg::before{transform:rotate(90deg)}
 .wrap{overflow-x:auto}
 table{border-collapse:separate;border-spacing:0;width:100%;min-width:680px}
 .mkHead{display:inline-block}
-th{font-size:12px;color:#666;text-align:left;padding:6px 8px;background:#fafafa;border-bottom:1px solid var(--line)}
-td{vertical-align:top;padding:8px;border-bottom:1px solid var(--line)}
+td{vertical-align:top;padding:8px;border-bottom:1px solid var(--grid);border-right:1px solid var(--grid)}
+td:last-child{border-right:0}
 td.wd{width:1%;white-space:nowrap;font-size:20px}
 .wd .w{font-weight:bold}
-.wd .w,.wd .pr,td.ex{font-family:var(--serif)}
+.wd .w,.wd .pr,td.ex,.lat,.cand b{font-family:var(--serif)}
+td.mn .r{font-weight:700}
 .wd .sub{font-size:.55em;line-height:1.5}
 .wd .no{color:var(--blue)}
 td.mn{min-width:10em;font-size:15px}
@@ -81,10 +82,10 @@ td.ja{min-width:14em;font-size:14px}
 @media (max-width:699px){
   table{table-layout:fixed;width:200vw;min-width:0}
   td.wd,td.mn,td.ex,td.ja{min-width:0;white-space:normal;overflow-wrap:anywhere}
-  th:nth-child(1),td.wd{width:164px}
-  th:nth-child(2),td.mn{width:calc(100vw - 164px)}
-  th:nth-child(3),td.ex{width:calc(100vw - 140px)}
-  th:nth-child(4),td.ja{width:140px}
+  td.wd{width:164px}
+  td.mn{width:calc(100vw - 164px)}
+  td.ex{width:calc(100vw - 140px)}
+  td.ja{width:140px}
 }
 .r{color:var(--red)}
 
@@ -117,7 +118,7 @@ td.ja{min-width:14em;font-size:14px}
 <main id="view">
   <div id="bar"><button id="back">← 戻る</button><b id="ttl"></b>
     <button class="ib" id="sheetBtn" aria-label="赤シート"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#d62020" stroke="#a01010"/><path d="M9 9h6M9 13h6" stroke="#fff"/></svg></button></div>
-  <div class="wrap"><table id="tbl"><thead><tr><th>単語</th><th>意味</th><th>例文</th><th>日本語訳</th></tr></thead><tbody id="body"></tbody></table></div>
+  <div class="wrap"><table id="tbl"><tbody id="body"></tbody></table></div>
 </main>
 
 <script>
@@ -125,6 +126,8 @@ td.ja{min-width:14em;font-size:14px}
 const CSV_FILE='ターゲット1900_例文付き.csv';
 const $=id=>document.getElementById(id);
 const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+// 意味の中のアルファベット部分だけ別フォントにするため、<span class="lat"> で囲む
+const lat=s=>s.split(/([A-Za-z]+(?:[ '’\-][A-Za-z]+)*)/).map((t,i)=>i%2?`<span class="lat">${esc(t)}</span>`:esc(t)).join('');
 function parseCSV(t){
   const rows=[];let row=[],f='',q=false;
   for(let i=0;i<t.length;i++){
@@ -188,7 +191,7 @@ function candidates(){
 function renderRes(){
   const l=candidates();
   $('res').innerHTML=`<div id="cnt">候補 ${l.length}語</div>`+l.map(w=>
-    `<div class="cand" data-n="${w.no}"><b>${esc(w.w)}</b><span class="cm">${esc(w.mean.split('；')[0])}</span><span class="cn">${w.no}</span></div>`).join('');
+    `<div class="cand" data-n="${w.no}"><b>${esc(w.w)}</b><span class="cm">${lat(w.mean.split('；')[0])}</span><span class="cn">${w.no}</span></div>`).join('');
 }
 function afterFilter(){
   $('fbtn').classList.toggle('on',F.sec.size<words.length/100||F.pos.size<POS.length||F.lo>1||F.hi<words.length);
@@ -217,7 +220,7 @@ function rowHTML(x){
   const i=x.mean.indexOf('；'), red=i<0?x.mean:x.mean.slice(0,i), rest=i<0?'':x.mean.slice(i);
   const ex=esc(x.ex).replace(/\(([^()]*)\)/g,'<span class="r mkBlank">$1</span>');
   return `<tr><td class="wd"><span class="mkHead"><div class="w">${esc(x.w)}</div><div class="sub pr">${esc(x.pr)}</div></span><div class="sub no">${x.no}</div></td>`
-    +`<td class="mn"><span class="mkMean"><span class="r mkMain">${esc(red)}</span><span class="sm">${esc(rest)}</span></span></td>`
+    +`<td class="mn"><span class="mkMean"><span class="r mkMain">${lat(red)}</span><span class="sm">${lat(rest)}</span></span></td>`
     +`<td class="ex"><span class="mkEx">${ex}</span></td><td class="ja"><span class="mkJa">${esc(x.ja)}</span></td></tr>`;
 }
 function renderView(){
