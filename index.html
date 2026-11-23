@@ -7,363 +7,53 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
-<style>
-:root{--red:#ff3333;--blue:#1a5fd0;--line:#ccc;--mk:#ff3333;--grid:#bcd6f2}
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-body{margin:0;color:#111;background:#fff;line-height:1.5;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
-:root{--serif:"Libre Baskerville",Georgia,"Times New Roman",serif}
-button,input{font-family:inherit}
-button{font:inherit;cursor:pointer}
-.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.ib{width:40px;height:40px;border-radius:50%;border:1px solid #bbb;background:#f4f4f4;display:flex;align-items:center;justify-content:center;padding:0;color:#333;flex:none}
-.ib.on{border-color:var(--blue);color:var(--blue);background:#eaf1ff}
-#msg{margin:16px;padding:14px;border:1px solid #e0b000;background:#fff8dc;border-radius:8px;font-size:14px}
-#msg code{background:#fff;padding:1px 4px;border-radius:3px}
-
-/* 画面の切り替え */
-#hdr,#toc,#res,#view,#sbar{display:none}
-.scr-toc #toc,.scr-search #res,.scr-view #view{display:block}
-.scr-toc #hdr,.scr-search #hdr,.scr-toc #sbar,.scr-search #sbar{display:flex}
-
-#hdr{position:sticky;top:0;z-index:5;height:52px;align-items:center;justify-content:space-between;padding:0 8px 0 16px;background:#fff;border-bottom:1px solid var(--line)}
-h1{font-size:20px;margin:0}
-
-/* 検索バー（目次画面では下に固定、入力画面では上に移動） */
-#sbar{position:fixed;left:8px;right:8px;bottom:12px;z-index:5;height:48px;align-items:center;gap:6px;padding:0 4px 0 14px;background:#fff;border:1px solid #aaa;border-radius:24px;box-shadow:0 2px 8px rgba(0,0,0,.18)}
-#q{flex:1;min-width:0;border:0;outline:0;font-size:16px;background:none}
-#bk{display:none;border:0;background:none;font-size:20px;padding:0 6px 0 0;margin-left:-6px}
-.scr-search #bk{display:block}
-
-/* 目次 */
-#toc{padding:8px 8px 90px}
-#toc ul{list-style:none;margin:0;padding:0}
-#toc ul ul{display:none;margin-left:22px}
-#toc li.open>ul{display:block}
-.row{display:flex;align-items:center;min-height:44px}
-.tg{width:36px;height:44px;flex:none;border:0;background:none;padding:0;position:relative}
-.tg::before{content:"";position:absolute;left:13px;top:15px;border-left:10px solid #555;border-top:7px solid transparent;border-bottom:7px solid transparent;transition:transform .15s}
-li.open>.row>.tg::before{transform:rotate(90deg)}
-.tg.sp{cursor:default}.tg.sp::before{display:none}
-.lab{color:inherit;text-decoration:none;padding:8px 6px;flex:1;border-radius:6px}
-.lab:active{background:#eef3ff}
-.d0{font-weight:bold;font-size:17px}.d1{font-size:16px}.d2{font-size:15px}
-
-/* 候補一覧 */
-#res{padding:8px 0 90px}
-#cnt{padding:4px 16px;font-size:12px;color:#666}
-.cand{display:flex;align-items:baseline;gap:10px;padding:10px 16px;border-bottom:1px solid #eee;cursor:pointer}
-.cand:active{background:#eef3ff}
-.cand b{font-size:17px}
-.cand .cm{flex:1;min-width:0;font-size:13px;color:#555;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.cand .cn{color:var(--blue);font-size:12px}
-
-/* 単語表 */
-#view{padding-bottom:40px}
-#bar{display:flex;align-items:center;gap:10px;padding:6px 8px 6px 12px;border-bottom:1px solid var(--line);background:#f6f7f9;position:sticky;top:0;z-index:2}
-#back{border:0;background:none;color:var(--blue);font-size:15px;padding:8px 4px;white-space:nowrap}
-#ttl{flex:1;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.wrap{overflow-x:auto}
-table{border-collapse:separate;border-spacing:0;width:100%;min-width:680px}
-.mkHead{display:inline-block}
-td{vertical-align:top;padding:8px;border-bottom:1px solid var(--grid);border-right:1px solid var(--grid)}
-td:last-child{border-right:0}
-td.wd{width:1%;white-space:nowrap;font-size:20px}
-.wd .w{font-weight:bold}
-.wd .w,.wd .pr,td.ex,.lat,.cand b{font-family:var(--serif)}
-td.mn .r{font-weight:700}
-.wd .sub{font-size:.55em;line-height:1.5}
-.wd .no{color:var(--blue)}
-td.mn{min-width:10em;font-size:15px}
-td.mn .sm{font-size:.8em}
-td.ex{min-width:18em;font-size:14px}
-td.ja{min-width:14em;font-size:14px}
-/* スマホ（幅700px未満）: 表の幅を画面2枚分にして、1枚目=単語+意味、2枚目=例文+日本語訳。
-   単語列は164px、日本語訳列は140px（従来より全角4文字ほど短い）。残りが意味・例文 */
-@media (max-width:699px){
-  table{table-layout:fixed;width:200vw;min-width:0}
-  td.wd,td.mn,td.ex,td.ja{min-width:0;white-space:normal;overflow-wrap:anywhere}
-  td.wd{width:164px}
-  td.mn{width:calc(100vw - 164px)}
-  td.ex{width:calc(100vw - 140px)}
-  td.ja{width:140px}
-}
-.r{color:var(--red)}
-
-/* 中央メニュー */
-#ov{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
-#ov .card{background:#fff;border-radius:12px;padding:16px 18px;width:100%;max-width:420px;max-height:80vh;overflow:auto}
-#ov h3{margin:0 0 6px;font-size:16px}
-#ov label{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:15px}
-#ov input{width:18px;height:18px;margin:0}
-#ov .sub{margin-left:26px}
-#ov .grid{display:grid;grid-template-columns:1fr 1fr;margin-left:26px}
-#ov .gt{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#777;margin:12px 0 2px}
-#ov .all{border:1px solid #bbb;background:#f4f4f4;border-radius:14px;padding:2px 10px;font-size:12px;color:#333}
-#ov .rg{display:flex;align-items:center;gap:8px;font-size:15px}
-#ov input.num{width:88px;height:36px;padding:0 8px;font-size:16px;border:1px solid #bbb;border-radius:6px}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header id="hdr"><h1>ターゲット1900</h1>
-  <button class="ib" id="bookBtn" aria-label="候補を単語帳で見る"><svg class="ico" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-9-2v14c4 0 7 .5 9 2 2-1.5 5-2 9-2V4c-4 0-7 .5-9 2zM12 6v14"/></svg></button></header>
 <div id="msg" hidden></div>
-<nav id="toc"></nav>
-<main id="res"></main>
-<div id="sbar">
-  <button id="bk" aria-label="戻る">←</button>
-  <input id="q" type="text" placeholder="単語番号またはキーワードを入力" autocomplete="off" autocapitalize="off" spellcheck="false">
-  <button class="ib" id="mbtn" aria-label="検索方法"><svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
-  <button class="ib" id="fbtn" aria-label="絞り込み"><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></button>
-</div>
+
+<!-- ホーム -->
+<section id="home"><div class="hgrid">
+  <button class="hb" data-go="all"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-9-2v14c4 0 7 .5 9 2 2-1.5 5-2 9-2V4c-4 0-7 .5-9 2zM12 6v14"/></svg></span>1900</button>
+  <button class="hb" data-go="toc"><span class="c"><svg class="ico" viewBox="0 0 24 24"><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/><path d="M9 6h11M9 12h11M9 18h11"/></svg></span>目次</button>
+  <button class="hb" data-go="range"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></span>範囲選択</button>
+  <button class="hb" data-go="mylist"><span class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="15" width="16" height="4" rx="1"/><rect x="6" y="10" width="13" height="4" rx="1"/><rect x="5" y="5" width="14" height="4" rx="1"/></svg></span>マイリスト</button>
+  <button class="hb" data-go="card"><span class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="3" transform="rotate(-10 9.5 13.5)"/><rect x="9" y="3" width="13" height="15" rx="3" transform="rotate(10 15.5 10.5)" fill="#fff"/></svg></span>フラッシュカード</button>
+  <button class="hb" data-go="test"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg></span>テスト</button>
+</div></section>
+
+<!-- 目次 -->
+<section id="tocScr">
+  <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl">目次</b></div>
+  <nav id="toc"></nav>
+</section>
+
+<!-- 閲覧（1900・目次から選んだ範囲） -->
 <main id="view">
-  <div id="bar"><button id="back">← 戻る</button><b id="ttl"></b>
-    <button class="ib" id="sheetBtn" aria-label="赤シート"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#ff3333" stroke="#ff3333"/><path d="M9 9h6M9 13h6" stroke="#fff"/></svg></button></div>
+  <div class="bar">
+    <button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button>
+    <b class="ttl" id="ttl"></b>
+    <div id="sb">
+      <button id="mg" aria-label="検索方法"><svg class="ico" viewBox="0 0 24 24" style="width:20px;height:20px"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg></button>
+      <input id="q" type="text" placeholder="検索" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <button id="clr" aria-label="消去" hidden>×</button>
+    </div>
+    <button class="ib" id="sheetBtn" aria-label="赤シート"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#ff3333" stroke="#ff3333"/><path d="M9 9h6M9 13h6" stroke="#fff"/></svg></button>
+  </div>
   <div class="wrap"><table id="tbl"><tbody id="body"></tbody></table></div>
 </main>
 
-<script>
-/* CSVファイル名（index.html と同じフォルダに置く）。名前を変えたらここも変える */
-const CSV_FILE='ターゲット1900_例文付き.csv';
-const $=id=>document.getElementById(id);
-const esc=s=>s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-// 意味の中のアルファベット部分だけ別フォントにするため、<span class="lat"> で囲む
-const lat=s=>s.split(/([A-Za-z]+(?:[ '’\-][A-Za-z]+)*)/).map((t,i)=>i%2?`<span class="lat">${esc(t)}</span>`:esc(t)).join('');
-function parseCSV(t){
-  const rows=[];let row=[],f='',q=false;
-  for(let i=0;i<t.length;i++){
-    const c=t[i];
-    if(q){ if(c=='"'){ if(t[i+1]=='"'){f+='"';i++} else q=false } else f+=c }
-    else if(c=='"') q=true;
-    else if(c==','){row.push(f);f=''}
-    else if(c=='\n'||c=='\r'){ if(c=='\r'&&t[i+1]=='\n')i++; row.push(f);rows.push(row);row=[];f='' }
-    else f+=c;
-  }
-  if(f!==''||row.length){row.push(f);rows.push(row)}
-  return rows;
-}
-let words=[],tree=[],POS=[],viewState=null,mode='prefix',cur='toc',rv=null;
-const F={sec:new Set(),pos:new Set(),lo:1,hi:1900};            // フィルター（チェックが入っているもの）
-const S={head:0,mean:0,main:0,ex:0,blank:0,ja:0};  // 赤シート（1=隠す）
-const q=$('q'), sc={toc:0,search:0};
-const rng=(a,b)=>a==b?`(${a})`:`(${a}~${b})`;
-const range=(a,b)=>Array.from({length:b-a+1},(_,i)=>a+i);
-const secNo=s=>(s.from-1)/100+1;
-
-/* ---------- 目次の構造（CSVの品詞列が同じ範囲ごとに「〇〇編」） ---------- */
-function groupsOf(s){
-  const base=s*100, ws=words.slice(base,base+100), g=[];
-  for(let i=0;i<ws.length;){
-    let j=i; while(j<ws.length&&ws[j].pos==ws[i].pos)j++;
-    g.push({label:ws[i].pos+'編',from:base+i+1,to:base+j}); i=j;
-  }
-  return g;
-}
-const PARTS=[['Part 1　常に試験に出る基本単語800語',1,800],['Part 2　常に試験に出る重要単語700語',801,1500],['Part 3　ここで差がつく難単語400語',1501,1900]];
-function buildTree(){
-  tree=PARTS.map(([title,a,b])=>({label:title,from:a,to:b,
-    children:Array.from({length:(b-a+1)/100},(_,k)=>{const s=(a-1)/100+k;
-      return {label:`Section ${s+1}`,from:s*100+1,to:s*100+100,children:groupsOf(s)};})}));
-}
-function build(n,depth){
-  const li=document.createElement('li'), row=document.createElement('div'); row.className='row';
-  const has=n.children&&n.children.length;
-  const tg=document.createElement(has?'button':'span'); tg.className='tg'+(has?'':' sp');
-  if(has){ tg.setAttribute('aria-label','開閉'); tg.onclick=()=>li.classList.toggle('open'); }
-  const a=document.createElement('a'); a.className='lab d'+depth; a.href='#v';
-  const title=`${n.label} ${rng(n.from,n.to)}`; a.textContent=title;
-  a.onclick=e=>{e.preventDefault();openView(title,range(n.from,n.to))};
-  row.append(tg,a); li.append(row);
-  if(has){ const ul=document.createElement('ul'); n.children.forEach(c=>ul.append(build(c,depth+1))); li.append(ul); }
-  return li;
-}
-function buildTOC(){ const ul=document.createElement('ul'); tree.forEach(n=>ul.append(build(n,0))); $('toc').replaceChildren(ul); } // 最初は全て閉じた状態
-
-/* ---------- 検索・フィルター ---------- */
-function candidates(){
-  const k=q.value.trim().normalize('NFKC');
-  const list=words.filter(w=>F.sec.has(w.sec)&&F.pos.has(w.pos)&&w.no>=F.lo&&w.no<=F.hi);
-  if(!k) return list;
-  if(/^\d+$/.test(k)) return list.filter(w=>w.no===+k);
-  const l=k.toLowerCase();
-  return list.filter(w=>{const s=w.w.toLowerCase();return mode=='prefix'?s.startsWith(l):mode=='suffix'?s.endsWith(l):s.includes(l)})
-    .sort((a,b)=>a.w.toLowerCase().localeCompare(b.w.toLowerCase()));
-}
-function renderRes(){
-  const l=candidates();
-  $('res').innerHTML=`<div id="cnt">候補 ${l.length}語</div>`+l.map(w=>
-    `<div class="cand" data-n="${w.no}"><b>${esc(w.w)}</b><span class="cm">${lat(w.mean.split('；')[0])}</span><span class="cn">${w.no}</span></div>`).join('');
-}
-function afterFilter(){
-  $('fbtn').classList.toggle('on',F.sec.size<words.length/100||F.pos.size<POS.length||F.lo>1||F.hi<words.length);
-  if(cur==='search') renderRes();
-}
-
-/* ---------- 閲覧ボタンのタイトル ---------- */
-function secLabel(){
-  const a=[...F.sec].sort((x,y)=>x-y);
-  if(a.length===words.length/100) return 'All Sections';
-  if(!a.length) return 'Sectionなし';
-  const r=[]; for(let i=0;i<a.length;){let j=i; while(a[j+1]===a[j]+1)j++; r.push(i===j?`Section ${a[i]}`:`Section ${a[i]}~${a[j]}`); i=j+1}
-  return r.join(', ');
-}
-function bookTitle(){
-  const k=q.value.trim().normalize('NFKC'), allSec=F.sec.size===words.length/100, allPos=F.pos.size===POS.length, allNo=F.lo===1&&F.hi===words.length;
-  if(!k&&allSec&&allPos&&allNo) return 'ターゲット1900';
-  if(/^\d+$/.test(k)) return `番号 ${k}`;
-  const kind=allPos?'単語':(POS.filter(p=>F.pos.has(p)).join('・')||'品詞なし');
-  const tail=`${kind}（${secLabel()}${allNo?'':`, 番号 ${F.lo}~${F.hi}`}）`;
-  return k?k+{prefix:'から始まる',suffix:'で終わる',part:'を含む'}[mode]+tail:tail;
-}
-
-/* ---------- 単語表 ---------- */
-function rowHTML(x){
-  const i=x.mean.indexOf('；'), red=i<0?x.mean:x.mean.slice(0,i), rest=i<0?'':x.mean.slice(i);
-  const ex=esc(x.ex).replace(/\(([^()]*)\)/g,'<span class="r mkBlank">$1</span>');
-  return `<tr><td class="wd"><span class="mkHead"><div class="w">${esc(x.w)}</div><div class="sub pr">${esc(x.pr)}</div></span><div class="sub no">${x.no}</div></td>`
-    +`<td class="mn"><span class="mkMean"><span class="r mkMain">${lat(red)}</span><span class="sm">${lat(rest)}</span></span></td>`
-    +`<td class="ex"><span class="mkEx">${ex}</span></td><td class="ja"><span class="mkJa">${esc(x.ja)}</span></td></tr>`;
-}
-function renderView(){
-  $('ttl').textContent=viewState.title;
-  $('body').innerHTML=viewState.nos.length?viewState.nos.map(n=>rowHTML(words[n-1])).join(''):'<tr><td colspan="4">該当する単語がありません</td></tr>';
-  applyFlags();
-}
-// 赤シートの設定を表に反映。意味・例文を隠すときは、その中の赤字（主要な意味・穴埋め）は個別のマーカーを付けない
-function applyFlags(){
-  const t=$('tbl').classList;
-  t.toggle('hHead',!!S.head); t.toggle('hMean',!!S.mean); t.toggle('hMain',!S.mean&&!!S.main);
-  t.toggle('hEx',!!S.ex); t.toggle('hBlank',!S.ex&&!!S.blank); t.toggle('hJa',!!S.ja);
-  $('tbl').querySelectorAll('.rv').forEach(e=>e.classList.remove('rv')); rv=null;
-}
-const MK='.hHead .mkHead,.hMean .mkMean,.hMain .mkMain,.hEx .mkEx,.hBlank .mkBlank,.hJa .mkJa';
-document.head.insertAdjacentHTML('beforeend',`<style>
-:is(${MK}){background:var(--mk);border-radius:3px;padding:0 2px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background .15s;box-decoration-break:clone;-webkit-box-decoration-break:clone}
-:is(${MK}):not(.rv),:is(${MK}):not(.rv) *{color:transparent}
-:is(${MK}).rv{background:rgba(255,51,51,.15)}</style>`);
-// マーカーをタップ→薄くなって見える。もう一度タップ、または別の場所をタップ→元に戻る
-document.addEventListener('click',e=>{
-  if(cur!=='view') return;
-  const m=e.target.closest(MK);
-  if(rv&&rv!==m){rv.classList.remove('rv');rv=null}
-  if(m){m.classList.toggle('rv');rv=m.classList.contains('rv')?m:null}
-});
-
-/* ---------- 中央メニュー（外側のグレー部分をタップで閉じる。変更は「閉じた瞬間」に反映） ---------- */
-function modal(html,bind,onClose){
-  const o=document.createElement('div'); o.id='ov'; o.innerHTML=`<div class="card">${html}</div>`;
-  o.onclick=e=>{ if(e.target===o){ o.remove(); onClose&&onClose(); } };
-  document.body.append(o); bind(o);
-}
-function filterMenu(){
-  const N=words.length/100, T=words.length;
-  let h=`<div class="gt">番号</div><div class="rg"><input class="num" id="lo" type="number" inputmode="numeric" min="1" max="${T}" value="${F.lo}"> ～ <input class="num" id="hi" type="number" inputmode="numeric" min="1" max="${T}" value="${F.hi}"></div>`
-    +'<div class="gt">パート・セクション<button class="all" data-all="sec"></button></div>';
-  tree.forEach((p,i)=>{
-    h+=`<label><input type="checkbox" data-p="${i}"><b>${p.label.split('　')[0]}</b>&nbsp;${rng(p.from,p.to)}</label><div class="grid">`
-      +p.children.map(s=>`<label><input type="checkbox" data-s="${secNo(s)}">${s.label}</label>`).join('')+'</div>';
-  });
-  h+='<div class="gt">品詞<button class="all" data-all="pos"></button></div><div class="grid" style="margin-left:0">'+POS.map(p=>`<label><input type="checkbox" data-pos="${p}">${p}</label>`).join('')+'</div>';
-  modal(h,o=>{
-    const sync=()=>{
-      o.querySelectorAll('[data-s]').forEach(c=>c.checked=F.sec.has(+c.dataset.s));
-      o.querySelectorAll('[data-pos]').forEach(c=>c.checked=F.pos.has(c.dataset.pos));
-      o.querySelectorAll('[data-p]').forEach(c=>{
-        const ns=tree[c.dataset.p].children.map(secNo), k=ns.filter(n=>F.sec.has(n)).length;
-        c.checked=k===ns.length; c.indeterminate=k>0&&k<ns.length;
-      });
-      o.querySelector('[data-all=sec]').textContent=F.sec.size===N?'すべて解除':'すべて選択';
-      o.querySelector('[data-all=pos]').textContent=F.pos.size===POS.length?'すべて解除':'すべて選択';
-    };
-    o.onchange=e=>{
-      const c=e.target, on=c.checked, d=c.dataset;
-      if(c.type!=='checkbox') return;
-      if(d.s) on?F.sec.add(+d.s):F.sec.delete(+d.s);
-      else if(d.pos) on?F.pos.add(d.pos):F.pos.delete(d.pos);
-      else tree[d.p].children.forEach(s=>on?F.sec.add(secNo(s)):F.sec.delete(secNo(s)));
-      sync();
-    };
-    const num=(el,def)=>{const v=parseInt(el.value,10); return isNaN(v)?def:Math.min(T,Math.max(1,v))};
-    o.addEventListener('input',e=>{
-      if(e.target.id==='lo') F.lo=num(e.target,1);
-      if(e.target.id==='hi') F.hi=num(e.target,T);
-    });
-    o.addEventListener('click',e=>{
-      const b=e.target.closest('.all'); if(!b) return;
-      if(b.dataset.all==='sec') F.sec=F.sec.size===N?new Set():new Set(range(1,N));
-      else F.pos=F.pos.size===POS.length?new Set():new Set(POS);
-      sync();
-    });
-    sync();
-  },()=>{ if(F.lo>F.hi)[F.lo,F.hi]=[F.hi,F.lo]; afterFilter(); });
-}
-function searchMenu(){
-  modal('<h3>検索方法</h3>'+[['prefix','前方一致'],['suffix','後方一致'],['part','部分一致']]
-    .map(([v,t])=>`<label><input type="radio" name="m" value="${v}" ${mode===v?'checked':''}>${t}</label>`).join(''),
-    o=>{o.onchange=e=>{mode=e.target.value}},
-    ()=>{ if(cur==='search') renderRes(); });
-}
-function sheetMenu(){
-  const items=[['head','見出し語'],['mean','意味'],['main','主要な意味',1],['ex','例文'],['blank','例文穴埋め',1],['ja','和訳']];
-  modal('<h3>赤シート+</h3>'+items.map(([k,t,s])=>`<label class="${s?'sub':''}"><input type="checkbox" data-k="${k}">${t}</label>`).join(''),o=>{
-    const sync=()=>o.querySelectorAll('[data-k]').forEach(c=>{
-      const k=c.dataset.k, par={main:'mean',blank:'ex'}[k];
-      c.checked=!!S[k]||!!(par&&S[par]); c.disabled=!!(par&&S[par]);   // 親が選ばれていたらチェック固定
-    });
-    o.onchange=e=>{S[e.target.dataset.k]=e.target.checked?1:0; sync()};
-    sync();
-  },()=>applyFlags());
-}
-
-/* ---------- 画面切り替え（ブラウザの戻るボタン対応）#なし=目次 / #s=検索 / #v=単語表 ---------- */
-function openView(title,nos){ viewState={title,nos}; if(location.hash==='#v') route(); else location.hash='#v'; }
-function route(){
-  const h=location.hash, next=h==='#s'?'search':(h==='#v'&&viewState)?'view':'toc';
-  if(cur in sc) sc[cur]=scrollY;
-  if(next==='toc'&&cur!=='toc') q.value='';
-  if(next!=='search') q.blur();
-  cur=next; document.body.className='scr-'+next;
-  if(next==='search') renderRes();
-  if(next==='view') renderView();
-  scrollTo(0,sc[next]||0);
-}
-addEventListener('hashchange',()=>{ if(words.length) route(); });
-q.onfocus=()=>{ if(cur!=='search') location.hash='#s'; };
-q.oninput=()=>{ if(cur==='search') renderRes(); };
-q.onkeydown=e=>{ if(e.key==='Enter') q.blur(); };
-$('bk').onclick=()=>history.back();
-$('back').onclick=()=>history.back();
-$('mbtn').onclick=searchMenu; $('fbtn').onclick=filterMenu; $('sheetBtn').onclick=sheetMenu;
-$('bookBtn').onclick=()=>{const l=candidates(); openView(bookTitle(),l.map(w=>w.no));};
-$('res').onclick=e=>{const c=e.target.closest('.cand'); if(c) openView(`単語 ${c.dataset.n}`,[+c.dataset.n]);};
-
-if(window.visualViewport){
-  const kb=()=>{const v=visualViewport; $('sbar').style.bottom=Math.max(12,innerHeight-v.height-v.offsetTop+12)+'px'};
-  visualViewport.addEventListener('resize',kb); visualViewport.addEventListener('scroll',kb);
-}
-
-/* ---------- CSVの読み込み ---------- */
-const msg=$('msg');
-function init(text){
-  words=parseCSV(text.replace(/^\uFEFF/,'').trim()).slice(1).filter(r=>r.length>=7)
-    .map(r=>({no:+r[0],pos:r[1],w:r[2],pr:r[3],mean:r[4],ex:r[5],ja:r[6]}));
-  if(words.length!==1900 || words.some((x,i)=>x.no!==i+1)){
-    words=[]; msg.hidden=false;
-    msg.textContent='CSVの形式が想定と違います（1900語・番号が1から順に並んでいる必要があります）。';
-    return;
-  }
-  words.forEach(w=>w.sec=Math.ceil(w.no/100));
-  const order=['動詞','名詞','形容詞','副詞','前置詞','接続詞'];
-  POS=[...new Set(words.map(w=>w.pos))].sort((a,b)=>(order.indexOf(a)+99)%99-(order.indexOf(b)+99)%99);
-  F.sec=new Set(range(1,words.length/100)); F.pos=new Set(POS); F.lo=1; F.hi=words.length;
-  msg.hidden=true; buildTree(); buildTOC(); afterFilter(); route();
-}
-function showPicker(){
-  msg.hidden=false;
-  msg.innerHTML='CSVを自動で読み込めませんでした（index.html をダブルクリックで開いた場合は、ブラウザの制限でこうなります）。'
-    +'<br>下のボタンから <code>'+CSV_FILE+'</code> を選んでください。<br><br><input type="file" id="pick" accept=".csv,text/csv">';
-  $('pick').onchange=e=>{const f=e.target.files[0]; if(f) f.text().then(init);};
-}
-fetch(encodeURI(CSV_FILE),{cache:'no-cache'}).then(r=>{ if(!r.ok) throw new Error(r.status); return r.text(); }).then(init,showPicker);
-</script>
+<!-- 虫眼鏡のプルダウン -->
+<div id="pop" hidden>
+  <div class="pi" data-t="head"><span class="ck"></span>見出し語検索</div>
+  <div class="pi" data-t="mean"><span class="ck"></span>意味検索</div>
+  <div class="pi">検索オプション<span class="ar">›</span></div>
+  <div id="sub" hidden>
+    <div class="pi" data-m="prefix"><span class="ck"></span>前方一致</div>
+    <div class="pi" data-m="suffix"><span class="ck"></span>後方一致</div>
+    <div class="pi" data-m="part"><span class="ck"></span>部分一致</div>
+  </div>
+</div>
+<script src="app.js"></script>
 </body>
 </html>
