@@ -1,0 +1,107 @@
+:root{--red:#ff3333;--blue:#1a5fd0;--line:#ccc;--mk:#ff3333;--grid:#bcd6f2}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;color:#111;background:#fff;line-height:1.5;font-family:"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif}
+:root{--serif:"Libre Baskerville",Georgia,"Times New Roman",serif}
+button,input{font-family:inherit}
+button{font:inherit;cursor:pointer}
+.ico{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ib{width:40px;height:40px;border-radius:50%;border:1px solid #bbb;background:#f4f4f4;display:flex;align-items:center;justify-content:center;padding:0;color:#333;flex:none}
+.ib.on{border-color:var(--blue);color:var(--blue);background:#eaf1ff}
+#msg{margin:16px;padding:14px;border:1px solid #e0b000;background:#fff8dc;border-radius:8px;font-size:14px}
+#msg code{background:#fff;padding:1px 4px;border-radius:3px}
+
+/* 画面の切り替え */
+
+
+/* 検索バー（目次画面では下に固定、入力画面では上に移動） */
+
+/* 目次 */
+#toc ul{list-style:none;margin:0;padding:0}
+#toc ul ul{display:none;margin-left:22px}
+#toc li.open>ul{display:block}
+.row{display:flex;align-items:center;min-height:44px}
+.tg{width:36px;height:44px;flex:none;border:0;background:none;padding:0;position:relative}
+.tg.sp{cursor:default}.tg.sp::before{display:none}
+.lab{color:inherit;text-decoration:none;padding:8px 6px;flex:1;border-radius:6px}
+.lab:active{background:#eef3ff}
+.d0{font-weight:bold;font-size:17px}.d1{font-size:16px}.d2{font-size:15px}
+
+/* 候補一覧 */
+
+/* 単語表 */
+#view{padding-bottom:40px}
+.wrap{overflow-x:auto}
+table{border-collapse:separate;border-spacing:0;width:100%;min-width:680px}
+.mkHead{display:inline-block}
+td{vertical-align:top;padding:8px;border-bottom:1px solid var(--grid);border-right:1px solid var(--grid)}
+td:last-child{border-right:0}
+td.wd{width:1%;white-space:nowrap;font-size:20px}
+.wd .w{font-weight:bold}
+.wd .w,.wd .pr,td.ex,.lat,.cand b{font-family:var(--serif)}
+td.mn .r{font-weight:700}
+.wd .sub{font-size:.55em;line-height:1.5}
+.wd .no{color:var(--blue)}
+td.mn{min-width:10em;font-size:15px}
+td.mn .sm{font-size:.8em}
+td.ex{min-width:18em;font-size:14px}
+td.ja{min-width:14em;font-size:14px}
+/* スマホ（幅700px未満）: 表の幅を画面2枚分にして、1枚目=単語+意味、2枚目=例文+日本語訳。
+   単語列は164px、日本語訳列は140px（従来より全角4文字ほど短い）。残りが意味・例文 */
+@media (max-width:699px){
+  table{table-layout:fixed;width:200vw;min-width:0}
+  td.wd,td.mn,td.ex,td.ja{min-width:0;white-space:normal;overflow-wrap:anywhere}
+  td.wd{width:164px}
+  td.mn{width:calc(100vw - 164px)}
+  td.ex{width:calc(100vw - 140px)}
+  td.ja{width:140px}
+}
+.r{color:var(--red)}
+
+/* 中央メニュー */
+#ov{position:fixed;inset:0;z-index:100;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;padding:16px}
+#ov .card{background:#fff;border-radius:12px;padding:16px 18px;width:100%;max-width:420px;max-height:80vh;overflow:auto}
+#ov h3{margin:0 0 6px;font-size:16px}
+#ov label{display:flex;align-items:center;gap:8px;padding:7px 0;font-size:15px}
+#ov input{width:18px;height:18px;margin:0}
+#ov .sub{margin-left:26px}
+#ov .grid{display:grid;grid-template-columns:1fr 1fr;margin-left:26px}
+#ov .gt{display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#777;margin:12px 0 2px}
+#ov .all{border:1px solid #bbb;background:#f4f4f4;border-radius:14px;padding:2px 10px;font-size:12px;color:#333}
+#ov .rg{display:flex;align-items:center;gap:8px;font-size:15px}
+#ov input.num{width:88px;height:36px;padding:0 8px;font-size:16px;border:1px solid #bbb;border-radius:6px}
+
+/* ===== 画面の切り替え ===== */
+#home,#tocScr,#view{display:none}
+.scr-home #home{display:flex}.scr-toc #tocScr,.scr-view #view{display:block}
+
+/* ===== 共通の上部バー・戻る矢印 ===== */
+.bar{display:flex;align-items:center;gap:8px;height:52px;padding:0 8px;background:#f6f7f9;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.back{width:40px;height:40px;border:0;background:none;color:var(--blue);padding:0;display:flex;align-items:center;justify-content:center;flex:none}
+.back svg{width:26px;height:26px}
+.ttl{flex:1;min-width:0;font-size:16px;font-weight:bold;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== ホーム ===== */
+#home{min-height:100vh;align-items:center;justify-content:center}
+.hgrid{display:grid;grid-template-columns:repeat(2,auto);gap:36px 44px;justify-items:center}
+.hb{display:flex;flex-direction:column;align-items:center;gap:8px;border:0;background:none;padding:0;color:#222;font-size:13px}
+.hb .c{width:96px;height:96px;border-radius:50%;border:2px solid var(--blue);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--blue)}
+.hb:active .c{background:#eef3ff}
+.hb .ico{width:44px;height:44px}
+#toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%);background:#333;color:#fff;padding:10px 16px;border-radius:20px;font-size:14px;z-index:200;white-space:nowrap}
+
+/* ===== 目次 ===== */
+#toc{padding:8px 8px 40px}
+.tg::before{content:"";position:absolute;left:13px;top:16px;width:10px;height:10px;border-right:2px solid #555;border-top:2px solid #555;transform:rotate(45deg);transition:transform .15s}
+li.open>.row>.tg::before{transform:rotate(135deg)}
+
+/* ===== 閲覧画面の検索バー ===== */
+#sb{flex:0 1 172px;min-width:110px;height:38px;display:flex;align-items:center;border:1px solid #aaa;border-radius:19px;background:#fff;padding:0 4px 0 2px}
+#mg{width:32px;height:32px;border:0;background:none;padding:0;color:#333;display:flex;align-items:center;justify-content:center;flex:none}
+#q{flex:1;min-width:0;border:0;outline:0;font-size:16px;background:none}
+#clr{border:0;background:none;font-size:18px;color:#888;padding:0 6px}
+#pop{position:fixed;z-index:50;width:210px;background:#fff;border:1px solid #bbb;border-radius:10px;box-shadow:0 4px 16px rgba(0,0,0,.2);padding:4px 0}
+.pi{display:flex;align-items:center;padding:11px 14px;font-size:15px;cursor:pointer}
+.pi .ck{width:22px;color:var(--blue);font-weight:bold}
+.pi .ar{margin-left:auto;color:#777;transition:transform .15s}
+.pi.open .ar{transform:rotate(90deg)}
+#sub .pi{padding-left:22px}
