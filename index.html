@@ -44,6 +44,23 @@
   <div class="rsp" id="rs2"><div class="gt">単語番号</div><div class="rg"><input class="num" id="lo" type="number" inputmode="numeric" min="1" max="1900" value="1"> ～ <input class="num" id="hi" type="number" inputmode="numeric" min="1" max="1900" value="1900"></div><div class="foot"><div class="cnt" id="cnt2"></div><button class="main" id="go2">範囲選択</button></div></div>
 </section>
 
+<!-- フラッシュカード一覧 -->
+<section id="fcScr">
+  <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl">フラッシュカード</b></div>
+  <div id="fcList"></div>
+</section>
+
+<!-- フラッシュカード本体 -->
+<section id="fcPlay">
+  <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl" id="fcProg"></b></div>
+  <div id="fcArea">
+    <div id="fcCard"><span class="hint l">要復習</span><span class="hint r">暗記済み</span><span class="hint u">スキップ</span><div id="fcFace"></div></div>
+    <div id="fcEnd" hidden></div>
+  </div>
+  <div class="fcnote">タップでめくる／←要復習　→暗記済み　↑スキップ</div>
+  <button id="fcUndo" aria-label="1つ前に戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+</section>
+
 <!-- 閲覧（1900・目次から選んだ範囲） -->
 <main id="view">
   <div class="bar">
