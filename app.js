@@ -141,25 +141,26 @@ document.addEventListener('click',e=>{ if(!pop.hidden&&!pop.contains(e.target)&&
 /* ---------- 画面切り替え（#なし=ホーム / #toc=目次 / #all=1900 / #v=目次から選んだ範囲） ---------- */
 function openView(title,nos,plain){ viewState={title,nos,plain:!!plain}; location.hash=plain?'#rl':'#v'; }
 function toast(m){ const t=document.createElement('div'); t.id='toast'; t.textContent=m; document.body.append(t); setTimeout(()=>t.remove(),1800); }
-const SCR={'#toc':'toc','#ml':'ml','#rs':'rs','#rs1':'rs','#rs2':'rs'};
+const SCR={'#toc':'toc','#ml':'ml','#rs':'rs','#rs1':'rs','#rs2':'rs','#fc':'fc'};
 function route(){
   const h=location.hash;
   let next=SCR[h]||'home';
   if(h==='#all'||((h==='#v'||h==='#rl')&&viewState)) next='view';
-  if(cur==='toc'||cur==='ml') sc[cur]=scrollY;
+  if(h==='#fcp'&&FC) next='fcp';
+  if(cur==='toc'||cur==='ml'||cur==='fc') sc[cur]=scrollY;
   if(next==='view'){
     if(h==='#all') viewState={title:'1900',nos:range(1,words.length),plain:false};
     if(cur!=='view'){ q.value=''; $('clr').hidden=true; pop.hidden=true; }
   } else { q.blur(); pop.hidden=true; }
   cur=next; document.body.className='scr-'+next;
   if(next==='view'){ $('view').classList.toggle('plain',!!viewState.plain); $('ttl').textContent=viewState.title; renderView(); scrollTo(0,0); }
-  else { if(next==='ml') renderMl(); if(next==='rs') showRs(h); scrollTo(0,sc[next]||0); }
+  else { if(next==='ml') renderMl(); if(next==='fc') renderFc(); if(next==='fcp') fcShow(); if(next==='rs') showRs(h); scrollTo(0,sc[next]||0); }
 }
 addEventListener('hashchange',()=>{ if(words.length) route(); });
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>history.back());
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
   const g=b.dataset.go;
-  const to={all:'#all',toc:'#toc',range:'#rs',mylist:'#ml'}[g];
+  const to={all:'#all',toc:'#toc',range:'#rs',mylist:'#ml',card:'#fc'}[g];
   if(to) location.hash=to; else toast('この機能は次の段階で追加します');
 });
 $('sheetBtn').onclick=sheetMenu;
@@ -175,8 +176,8 @@ const IC={
   rev:'<svg viewBox="0 0 24 24"><path d="M12 2.5L22.5 21h-21z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 9v5.5" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/><circle cx="12" cy="17.6" r="1.3" fill="#fff"/></svg>'
 };
 const FIXED=[['bm','ブックマーク'],['mem','暗記済み'],['rev','要復習']];
-let D={tags:{},lists:[],fc:[],ts:[]};
-function load(){ try{ const j=JSON.parse(localStorage.getItem(KEY)||'null'); if(j) D=Object.assign(D,j); }catch(e){} }
+let D={tags:{},lists:[],fc:[],ts:[],pref:{}};
+function load(){ try{ const j=JSON.parse(localStorage.getItem(KEY)||'null'); if(j) D=Object.assign(D,j); }catch(e){} D.pref=D.pref||{}; }
 function save(){ try{ localStorage.setItem(KEY,JSON.stringify(D)); }catch(e){ toast('保存できませんでした'); } }
 const has=(n,k)=>((D.tags[n]||0)&BIT[k])>0;
 function toggleTag(n,k){   // 暗記済みと要復習は、どちらか一方だけ
@@ -203,7 +204,7 @@ function confirmBox(msg,ok,onOk,danger){
 function saveTo(kind,name,nos,done){
   name=name.trim();
   if(!name){ toast('名前を入力してください'); return; }
-  if(kind==='lists'&&FIXED.some(f=>f[1]===name)){ toast('その名前は使えません'); return; }
+  if(FIXED.some(f=>f[1]===name)){ toast('その名前は使えません'); return; }
   const arr=D[kind], i=arr.findIndex(l=>l.name===name);
   const doit=()=>{ if(i>=0) arr[i].nos=nos.slice(); else arr.push({name,nos:nos.slice(),at:Date.now(),viewed:0}); save(); toast('保存しました'); done&&done(); };
   if(i>=0) confirmBox(`同じ名前のリスト「${name}」があります。上書き保存しますか？`,'上書き保存',doit); else doit();
@@ -226,29 +227,30 @@ function renderMl(){
   $('mlList').innerHTML=fx+us;
 }
 function closeMenus(){ document.querySelectorAll('.popm').forEach(m=>m.remove()); }
-function listMenu(btn,i){
+function listMenu(btn,kind,i){
   closeMenus();
-  const l=D.lists[i], m=document.createElement('div'); m.className='popm';
-  m.innerHTML='<div class="pi" data-a="fc">フラッシュカードを作成</div><div class="pi" data-a="ts">テストを作成</div><div class="pi" data-a="rn">名前を変更</div><div class="pi dg" data-a="del">削除</div>';
+  const arr=D[kind], l=arr[i], m=document.createElement('div'); m.className='popm';
+  const again=()=>kind==='lists'?renderMl():renderFc();
+  m.innerHTML=(kind==='lists'?'<div class="pi" data-a="fc">フラッシュカードを作成</div><div class="pi" data-a="ts">テストを作成</div>':'')+'<div class="pi" data-a="rn">名前を変更</div><div class="pi dg" data-a="del">削除</div>';
   const r=btn.getBoundingClientRect(); m.style.top=(r.bottom+4)+'px'; m.style.left=Math.max(8,Math.min(r.right-230,innerWidth-238))+'px';
   m.onclick=e=>{
     const a=e.target.closest('.pi'); if(!a) return; closeMenus();
     if(a.dataset.a==='fc'||a.dataset.a==='ts') saveDlg(l.name,l.nos,[a.dataset.a]);
-    else if(a.dataset.a==='del') confirmBox(`「${l.name}」を削除しますか？`,'削除',()=>{ D.lists.splice(i,1); save(); renderMl(); },true);
+    else if(a.dataset.a==='del') confirmBox(`「${l.name}」を削除しますか？`,'削除',()=>{ arr.splice(i,1); save(); again(); },true);
     else modal('<h3>名前を変更</h3><input class="txt"><button class="sb wide pri">保存</button>',o=>{
       const t=o.querySelector('.txt'); t.value=l.name;
       o.querySelector('.sb').onclick=()=>{
         const nm=t.value.trim();
         if(!nm){ toast('名前を入力してください'); return; }
-        if(nm!==l.name&&(D.lists.some(x=>x.name===nm)||FIXED.some(f=>f[1]===nm))){ toast('同じ名前のリストがあります'); return; }
-        l.name=nm; save(); o.remove(); renderMl();
+        if(nm!==l.name&&(arr.some(x=>x.name===nm)||FIXED.some(f=>f[1]===nm))){ toast('同じ名前のリストがあります'); return; }
+        l.name=nm; save(); o.remove(); again();
       };
     });
   };
   document.body.append(m);
 }
 $('mlList').addEventListener('click',e=>{
-  const mm=e.target.closest('.mm'); if(mm){ listMenu(mm,+mm.dataset.i); return; }
+  const mm=e.target.closest('.mm'); if(mm){ listMenu(mm,'lists',+mm.dataset.i); return; }
   const el=e.target.closest('.li'); if(!el) return;
   if(el.dataset.f){ const f=FIXED.find(x=>x[0]===el.dataset.f); openView(f[1],tagNos(f[0])); }
   else { const l=D.lists[+el.dataset.i]; l.viewed=Date.now(); save(); openView(l.name,l.nos); }
@@ -319,6 +321,136 @@ $('b2').onclick=()=>{ location.hash='#rs2'; };
 $('go1').onclick=()=>openView(rsTitle('sec'),rsList('sec').map(w=>w.no),true);
 $('go2').onclick=()=>openView(rsTitle('num'),rsList('num').map(w=>w.no),true);
 
+/* ---------- フラッシュカード ---------- */
+const FCM={hm:['見出し語','意味',1],hmain:['見出し語','主要な意味',1],exja:['例文','日本語訳',1],blank:['例文穴埋め',0,0],blankh:['例文穴埋め(頭文字ヒントつき)',0,0]};
+const FCK={hm:['head','mean'],hmain:['head','main'],exja:['ex','ja'],blank:['blank','ans'],blankh:['blankh','ans']};
+let FC=null, fcBusy=false;
+const shuffle=a=>{ for(let i=a.length-1;i>0;i--){const k=Math.floor(Math.random()*(i+1));[a[i],a[k]]=[a[k],a[i]];} return a; };
+const exMap=(s,fn)=>s.split(/\(([^()]*)\)/).map((t,i)=>i%2?fn(t):esc(t)).join('');
+function facePart(w,k){
+  const i=w.mean.indexOf('；'), red=i<0?w.mean:w.mean.slice(0,i), rest=i<0?'':w.mean.slice(i);
+  if(k==='head') return `<div class="fw">${esc(w.w)}</div><div class="fp">${esc(w.pr)}</div>`;
+  if(k==='mean') return `<div class="fm"><span class="r">${lat(red)}</span><span class="sm">${lat(rest)}</span></div>`;
+  if(k==='main') return `<div class="fm"><span class="r">${lat(red)}</span></div>`;
+  if(k==='ex') return `<div class="fe">${exMap(w.ex,t=>`<span class="r">${esc(t)}</span>`)}</div>`;
+  if(k==='ja') return `<div class="fj">${esc(w.ja)}</div>`;
+  if(k==='ans') return `<div class="fe">${w.ex.split(/\(([^()]*)\)/).filter((t,i)=>i%2).map(t=>`<span class="r">${esc(t)}</span>`).join('、')}</div>`;
+  const hint=k==='blankh';   // blank / blankh: （ ）を空欄にした例文＋日本語訳。ヒント付きは頭文字だけ表示
+  return `<div class="fe">${exMap(w.ex,t=>`<span class="bl">${hint?esc(t[0])+'…':'&nbsp;'}</span>`)}</div><div class="fj">${esc(w.ja)}</div>`;
+}
+function fcShowCard(){
+  const w=words[FC.deck[FC.i]-1], ks=FCK[FC.o.mode], sw=FC.o.swap&&FCM[FC.o.mode][2];
+  const k=(sw?[ks[1],ks[0]]:ks)[FC.flip?1:0];
+  $('fcFace').innerHTML=facePart(w,k);
+}
+function fcShow(){
+  const c=$('fcCard'); c.style.transition='none'; c.style.transform='';
+  document.querySelectorAll('.hint').forEach(x=>x.style.opacity=0);
+  const done=FC.i>=FC.deck.length;
+  c.hidden=done; $('fcEnd').hidden=!done;
+  $('fcProg').textContent=`${Math.min(FC.i+1,FC.deck.length)} / ${FC.deck.length}`;
+  if(done) fcEnd(); else fcShowCard();
+}
+function startFc(getNos,o,rec,deckNos){
+  let pool=deckNos||getNos().filter(n=>!(o.ex&&has(n,'mem')));
+  if(!pool.length){ toast('出題できる単語がありません'); return; }
+  const deck=shuffle(pool.slice()).slice(0,deckNos?pool.length:Math.min(o.n,pool.length));
+  FC={getNos,o,rec,deck,i:0,flip:false,hist:[],cnt:{rev:0,mem:0,skip:0},revNos:[]};
+  if(rec){ rec.viewed=Date.now(); save(); }
+  if(location.hash==='#fcp') route(); else location.hash='#fcp';
+}
+function setTagOn(n,k){ let v=(D.tags[n]||0)|BIT[k]; v&=~(k==='mem'?BIT.rev:BIT.mem); D.tags[n]=v; save(); }
+function fcAct(act,dx,dy){
+  if(fcBusy||!FC||FC.i>=FC.deck.length) return; fcBusy=true;
+  const c=$('fcCard'), n=FC.deck[FC.i];
+  c.style.transition='transform .18s'; c.style.transform=`translate(${dx*520}px,${dy*520}px) rotate(${dx*18}deg)`;
+  setTimeout(()=>{
+    FC.hist.push({n,prev:D.tags[n]||0,act});
+    if(act!=='skip') setTagOn(n,act);
+    FC.cnt[act]++; if(act==='rev') FC.revNos.push(n);
+    FC.i++; FC.flip=false; fcBusy=false; fcShow();
+  },180);
+}
+function fcUndo(){
+  if(fcBusy||!FC||!FC.hist.length) return;
+  const h=FC.hist.pop();
+  if(h.prev) D.tags[h.n]=h.prev; else delete D.tags[h.n];   // 先の分類を取り消す
+  save(); FC.cnt[h.act]--; if(h.act==='rev') FC.revNos.pop();
+  FC.i--; FC.flip=false; fcShow();
+}
+function fcEnd(){
+  const e=$('fcEnd'), c=FC.cnt;
+  e.innerHTML=`<h2>おつかれさまでした</h2><p>要復習 ${c.rev}語　／　暗記済み ${c.mem}語　／　スキップ ${c.skip}語</p>`
+    +(FC.revNos.length?'<button class="sb wide pri" data-a="rv">要復習になった単語でもう一度</button>':'')
+    +'<button class="sb wide" data-a="again">同じ設定でもう一度</button><button class="sb wide" data-a="back">一覧に戻る</button>';
+  e.onclick=ev=>{
+    const a=ev.target.dataset.a; if(!a) return;
+    if(a==='back') history.back();
+    else if(a==='again') startFc(FC.getNos,FC.o,FC.rec);
+    else startFc(FC.getNos,FC.o,FC.rec,FC.revNos.slice());
+  };
+}
+// カードの操作: タップでめくる／左=要復習／右=暗記済み／上=スキップ（キーボードの矢印・スペースも可）
+(function(){
+  const c=$('fcCard'); let d=null; const T=90;
+  const hint=(dx,dy)=>{ const [l,r,u]=document.querySelectorAll('.hint'); l.style.opacity=Math.min(1,Math.max(0,-dx/T)); r.style.opacity=Math.min(1,Math.max(0,dx/T)); u.style.opacity=Math.abs(dy)>Math.abs(dx)?Math.min(1,Math.max(0,-dy/T)):0; };
+  c.addEventListener('pointerdown',e=>{ if(fcBusy) return; d={x:e.clientX,y:e.clientY,dx:0,dy:0}; c.setPointerCapture(e.pointerId); c.style.transition='none'; });
+  c.addEventListener('pointermove',e=>{ if(!d) return; d.dx=e.clientX-d.x; d.dy=e.clientY-d.y;
+    c.style.transform=`translate(${d.dx}px,${Math.min(0,d.dy)}px) rotate(${d.dx/20}deg)`; hint(d.dx,d.dy); });
+  const end=e=>{ if(!d) return; const {dx,dy}=d; d=null; c.style.transition='transform .15s';
+    if(Math.abs(dx)<8&&Math.abs(dy)<8){ c.style.transform=''; if(e.type==='pointerup'){ FC.flip=!FC.flip; fcShowCard(); } return; }
+    if(Math.abs(dx)>=Math.abs(dy)&&dx<-T) fcAct('rev',-1,0);
+    else if(Math.abs(dx)>=Math.abs(dy)&&dx>T) fcAct('mem',1,0);
+    else if(dy<-T&&Math.abs(dy)>Math.abs(dx)) fcAct('skip',0,-1);
+    else { c.style.transform=''; hint(0,0); } };
+  c.addEventListener('pointerup',end); c.addEventListener('pointercancel',end);
+  addEventListener('keydown',e=>{ if(cur!=='fcp') return;
+    if(e.key==='ArrowLeft') fcAct('rev',-1,0); else if(e.key==='ArrowRight') fcAct('mem',1,0); else if(e.key==='ArrowUp') fcAct('skip',0,-1);
+    else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); if(FC&&FC.i<FC.deck.length){ FC.flip=!FC.flip; fcShowCard(); } }
+    else if(e.key==='z'||e.key==='Backspace') fcUndo(); });
+  $('fcUndo').onclick=fcUndo;
+})();
+
+// 一覧
+function renderFc(){
+  const fx=[['bm','ブックマーク'],['rev','要復習']].map(([k,n])=>`<div class="li" data-f="${k}"><span class="lic t-${k} on">${IC[k]}</span><span class="ln">${n}</span><span class="lc">${tagNos(k).length}語</span></div>`).join('');
+  const us=D.fc.map((l,i)=>({l,i})).sort((a,b)=>(b.l.viewed||0)-(a.l.viewed||0)||a.l.at-b.l.at)   // プレイしたリストが上
+    .map(({l,i})=>`<div class="li" data-i="${i}"><span class="lic"></span><span class="ln">${esc(l.name)}</span><span class="lc">${l.nos.length}語</span><button class="mm" data-i="${i}" aria-label="メニュー"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg></button></div>`).join('');
+  $('fcList').innerHTML=fx+us;
+}
+$('fcList').addEventListener('click',e=>{
+  const mm=e.target.closest('.mm'); if(mm){ listMenu(mm,'fc',+mm.dataset.i); return; }
+  const el=e.target.closest('.li'); if(!el) return;
+  if(el.dataset.f){ const k=el.dataset.f; fcDlg(FIXED.find(x=>x[0]===k)[1],()=>tagNos(k),null,k==='rev'); }
+  else { const l=D.fc[+el.dataset.i]; fcDlg(l.name,()=>l.nos,l,false); }
+});
+// 設定ウィンドウ
+function fcDlg(name,getNos,rec,noExclude){
+  const P=Object.assign({mode:'hm',swap:0,ex:1},D.pref.fc||{});
+  if(noExclude) P.ex=0;
+  const modes=Object.keys(FCM);
+  modal(`<h3>${esc(name)}</h3>`+(noExclude?'':'<label><input type="checkbox" id="fx">暗記済みは除外</label>')
+    +'<div class="rg" style="margin-top:6px"><input class="num" id="fn" type="number" inputmode="numeric" min="1"> 語 / <span id="fX"></span>語</div>'
+    +'<div class="fh"><span>表</span><button id="fsw" aria-label="表と裏を入れ替える">⇄</button><span>裏</span></div>'
+    +modes.map(m=>`<label><input type="radio" name="fm" value="${m}"><span data-m="${m}"></span></label>`).join('')
+    +'<button class="sb wide pri" id="fgo">フラッシュカードを開始</button>',o=>{
+    const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#fgo'), sw=o.querySelector('#fsw');
+    const avail=()=>getNos().filter(n=>!(P.ex&&has(n,'mem'))).length;
+    const clamp=()=>{ const X=avail(); o.querySelector('#fX').textContent=X; let v=parseInt(fn.value,10);
+      if(!isNaN(v)&&v>X) fn.value=X; if(!isNaN(v)&&v<1&&X>0) fn.value=1; go.disabled=X===0; };
+    const labels=()=>{ modes.forEach(m=>{ const d=FCM[m], s=P.swap&&d[2]; o.querySelector(`[data-m=${m}]`).textContent=d[1]?(s?`${d[1]} → ${d[0]}`:`${d[0]} → ${d[1]}`):d[0];
+      o.querySelector(`input[value=${m}]`).checked=P.mode===m; }); sw.disabled=!FCM[P.mode][2]; };
+    if(fx){ fx.checked=!!P.ex; fx.onchange=()=>{ P.ex=fx.checked?1:0; fn.value=avail(); clamp(); }; }
+    fn.value=avail(); clamp(); labels();
+    o.querySelectorAll('input[name=fm]').forEach(r=>r.onchange=()=>{ P.mode=r.value; labels(); });
+    sw.onclick=()=>{ P.swap=P.swap?0:1; labels(); };
+    fn.oninput=clamp;
+    go.onclick=()=>{ const X=avail(); let n=parseInt(fn.value,10); if(isNaN(n)||n>X) n=X; if(n<1) n=1;
+      D.pref.fc={mode:P.mode,swap:P.swap,ex:P.ex}; save(); o.remove();
+      startFc(getNos,{mode:P.mode,swap:P.swap,ex:P.ex,n},rec); };
+  });
+}
+
 /* ---------- バックアップ（保険。普段は使わない） ---------- */
 $('bkBtn').onclick=()=>modal('<h3>バックアップ</h3><p class="note">印・マイリストなどのデータを、ファイルに書き出す／読み込みます。</p><button class="sb wide" data-e>書き出す</button><button class="sb wide" data-i>読み込む</button><input type="file" accept=".json,application/json" hidden>',o=>{
   const fi=o.querySelector('input');
@@ -331,7 +463,7 @@ $('bkBtn').onclick=()=>modal('<h3>バックアップ</h3><p class="note">印・�
   fi.onchange=()=>{ const f=fi.files[0]; if(!f) return;
     f.text().then(t=>{ let j; try{ j=JSON.parse(t); }catch(e){}
       if(!j||j.app!=='target1900'||!j.data){ toast('このファイルは読み込めません'); return; }
-      confirmBox('現在のデータを、読み込んだデータで置き換えます。よろしいですか？','置き換える',()=>{ D=Object.assign({tags:{},lists:[],fc:[],ts:[]},j.data); save(); o.remove(); toast('読み込みました'); });
+      confirmBox('現在のデータを、読み込んだデータで置き換えます。よろしいですか？','置き換える',()=>{ D=Object.assign({tags:{},lists:[],fc:[],ts:[],pref:{}},j.data); save(); o.remove(); toast('読み込みました'); });
     });
   };
 });
