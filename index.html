@@ -20,12 +20,28 @@
   <button class="hb" data-go="mylist"><span class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="4" y="15" width="16" height="4" rx="1"/><rect x="6" y="10" width="13" height="4" rx="1"/><rect x="5" y="5" width="14" height="4" rx="1"/></svg></span>マイリスト</button>
   <button class="hb" data-go="card"><span class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="3" transform="rotate(-10 9.5 13.5)"/><rect x="9" y="3" width="13" height="15" rx="3" transform="rotate(10 15.5 10.5)" fill="#fff"/></svg></span>フラッシュカード</button>
   <button class="hb" data-go="test"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg></span>テスト</button>
-</div></section>
+</div>
+  <button class="lnk" id="bkBtn">バックアップ</button>
+</section>
 
 <!-- 目次 -->
 <section id="tocScr">
   <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl">目次</b></div>
   <nav id="toc"></nav>
+</section>
+
+<!-- マイリスト -->
+<section id="mlScr">
+  <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl">マイリスト</b></div>
+  <div id="mlList"></div>
+</section>
+
+<!-- 範囲選択 -->
+<section id="rsScr">
+  <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl">範囲選択</b></div>
+  <div class="rsp" id="rs0"><button class="big" id="b1">パート・セクションで範囲選択</button><button class="big" id="b2">単語番号で範囲選択</button></div>
+  <div class="rsp" id="rs1"><div id="rs1c"></div><div class="foot"><div class="cnt" id="cnt1"></div><button class="main" id="go1">範囲選択</button></div></div>
+  <div class="rsp" id="rs2"><div class="gt">単語番号</div><div class="rg"><input class="num" id="lo" type="number" inputmode="numeric" min="1" max="1900" value="1"> ～ <input class="num" id="hi" type="number" inputmode="numeric" min="1" max="1900" value="1900"></div><div class="foot"><div class="cnt" id="cnt2"></div><button class="main" id="go2">範囲選択</button></div></div>
 </section>
 
 <!-- 閲覧（1900・目次から選んだ範囲） -->
@@ -38,6 +54,7 @@
       <input id="q" type="text" placeholder="検索" autocomplete="off" autocapitalize="off" spellcheck="false">
       <button id="clr" aria-label="消去" hidden>×</button>
     </div>
+    <button class="ib" id="addBtn" aria-label="マイリストに追加する"><svg class="ico" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
     <button class="ib" id="sheetBtn" aria-label="赤シート"><svg class="ico" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2" fill="#ff3333" stroke="#ff3333"/><path d="M9 9h6M9 13h6" stroke="#fff"/></svg></button>
   </div>
   <div class="wrap"><table id="tbl"><tbody id="body"></tbody></table></div>
