@@ -141,26 +141,27 @@ document.addEventListener('click',e=>{ if(!pop.hidden&&!pop.contains(e.target)&&
 /* ---------- 画面切り替え（#なし=ホーム / #toc=目次 / #all=1900 / #v=目次から選んだ範囲） ---------- */
 function openView(title,nos,plain){ viewState={title,nos,plain:!!plain}; location.hash=plain?'#rl':'#v'; }
 function toast(m){ const t=document.createElement('div'); t.id='toast'; t.textContent=m; document.body.append(t); setTimeout(()=>t.remove(),1800); }
-const SCR={'#toc':'toc','#ml':'ml','#rs':'rs','#rs1':'rs','#rs2':'rs','#fc':'fc'};
+const SCR={'#toc':'toc','#ml':'ml','#rs':'rs','#rs1':'rs','#rs2':'rs','#fc':'fc','#ts':'ts'};
 function route(){
   const h=location.hash;
   let next=SCR[h]||'home';
   if(h==='#all'||((h==='#v'||h==='#rl')&&viewState)) next='view';
   if(h==='#fcp'&&FC) next='fcp';
-  if(cur==='toc'||cur==='ml'||cur==='fc') sc[cur]=scrollY;
+  if(h==='#tsp'&&TS) next='tsp';
+  if(cur==='toc'||cur==='ml'||cur==='fc'||cur==='ts') sc[cur]=scrollY;
   if(next==='view'){
     if(h==='#all') viewState={title:'1900',nos:range(1,words.length),plain:false};
     if(cur!=='view'){ q.value=''; $('clr').hidden=true; pop.hidden=true; }
   } else { q.blur(); pop.hidden=true; }
   cur=next; document.body.className='scr-'+next;
   if(next==='view'){ $('view').classList.toggle('plain',!!viewState.plain); $('ttl').textContent=viewState.title; renderView(); scrollTo(0,0); }
-  else { if(next==='ml') renderMl(); if(next==='fc') renderFc(); if(next==='fcp') fcShow(); if(next==='rs') showRs(h); scrollTo(0,sc[next]||0); }
+  else { if(next==='ml') renderMl(); if(next==='fc') renderFc(); if(next==='ts') renderTs(); if(next==='tsp') tsShow(); if(next==='fcp') fcShow(); if(next==='rs') showRs(h); scrollTo(0,sc[next]||0); }
 }
 addEventListener('hashchange',()=>{ if(words.length) route(); });
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>history.back());
 document.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{
   const g=b.dataset.go;
-  const to={all:'#all',toc:'#toc',range:'#rs',mylist:'#ml',card:'#fc'}[g];
+  const to={all:'#all',toc:'#toc',range:'#rs',mylist:'#ml',card:'#fc',test:'#ts'}[g];
   if(to) location.hash=to; else toast('この機能は次の段階で追加します');
 });
 $('sheetBtn').onclick=sheetMenu;
@@ -230,7 +231,7 @@ function closeMenus(){ document.querySelectorAll('.popm').forEach(m=>m.remove())
 function listMenu(btn,kind,i){
   closeMenus();
   const arr=D[kind], l=arr[i], m=document.createElement('div'); m.className='popm';
-  const again=()=>kind==='lists'?renderMl():renderFc();
+  const again=()=>kind==='lists'?renderMl():kind==='fc'?renderFc():renderTs();
   m.innerHTML=(kind==='lists'?'<div class="pi" data-a="fc">フラッシュカードを作成</div><div class="pi" data-a="ts">テストを作成</div>':'')+'<div class="pi" data-a="rn">名前を変更</div><div class="pi dg" data-a="del">削除</div>';
   const r=btn.getBoundingClientRect(); m.style.top=(r.bottom+4)+'px'; m.style.left=Math.max(8,Math.min(r.right-230,innerWidth-238))+'px';
   m.onclick=e=>{
@@ -349,34 +350,28 @@ function fcShow(){
   const done=FC.i>=FC.deck.length;
   c.hidden=done; $('fcEnd').hidden=!done;
   $('fcProg').textContent=`${Math.min(FC.i+1,FC.deck.length)} / ${FC.deck.length}`;
+  if(!done) document.querySelector('.hint.r').textContent=has(FC.deck[FC.i],'rev')?'要復習を解除':'暗記済み';   // 要復習の単語は右スライド＝解除
   if(done) fcEnd(); else fcShowCard();
 }
 function startFc(getNos,o,rec,deckNos){
   let pool=deckNos||getNos().filter(n=>!(o.ex&&has(n,'mem')));
   if(!pool.length){ toast('出題できる単語がありません'); return; }
   const deck=shuffle(pool.slice()).slice(0,deckNos?pool.length:Math.min(o.n,pool.length));
-  FC={getNos,o,rec,deck,i:0,flip:false,hist:[],cnt:{rev:0,mem:0,skip:0},revNos:[]};
+  FC={getNos,o,rec,deck,i:0,flip:false,hist:[],cnt:{rev:0,mem:0,rel:0,skip:0},revNos:[]};
   if(rec){ rec.viewed=Date.now(); save(); }
   if(location.hash==='#fcp') route(); else location.hash='#fcp';
 }
 function setTagOn(n,k){ let v=(D.tags[n]||0)|BIT[k]; v&=~(k==='mem'?BIT.rev:BIT.mem); D.tags[n]=v; save(); }
-// 分類のエフェクト（アイコンがポンと出て、画面が一瞬その色に光る。もう一方の印が外れたときは一言添える）
-function fcFx(act,note){
-  const fx=$('fcFx'), fl=$('fcFlash'), rev=act==='rev', col=rev?'var(--red)':'var(--blue)';
-  fx.style.color=col; fl.style.background=col;
-  fx.innerHTML=IC[act]+`<b>${rev?'要復習':'暗記済み'}</b>`+(note?`<small>${note}</small>`:'');
-  [fx,fl].forEach(e=>{ e.classList.remove('go'); void e.offsetWidth; e.classList.add('go'); });
-  if(navigator.vibrate) navigator.vibrate(rev?[25,40,25]:25);
-}
 function fcAct(act,dx,dy){
   if(fcBusy||!FC||FC.i>=FC.deck.length) return; fcBusy=true;
   const c=$('fcCard'), n=FC.deck[FC.i];
   c.style.transition='transform .18s'; c.style.transform=`translate(${dx*520}px,${dy*520}px) rotate(${dx*18}deg)`;
   setTimeout(()=>{
     const pv=D.tags[n]||0;
+    if(act==='mem'&&(pv&BIT.rev)) act='rel';   // 要復習の単語を右へ → 暗記済みにはせず、要復習を解除するだけ
     FC.hist.push({n,prev:pv,act});
-    if(act!=='skip'){ setTagOn(n,act);
-      fcFx(act,act==='mem'&&(pv&BIT.rev)?'要復習を外しました':act==='rev'&&(pv&BIT.mem)?'暗記済みを外しました':''); }
+    if(act==='rel'){ const v=pv&~BIT.rev; if(v) D.tags[n]=v; else delete D.tags[n]; save(); }
+    else if(act!=='skip') setTagOn(n,act);
     FC.cnt[act]++; if(act==='rev') FC.revNos.push(n);
     FC.i++; FC.flip=false; fcBusy=false; fcShow();
   },180);
@@ -390,7 +385,7 @@ function fcUndo(){
 }
 function fcEnd(){
   const e=$('fcEnd'), c=FC.cnt;
-  e.innerHTML=`<h2>おつかれさまでした</h2><p>要復習 ${c.rev}語　／　暗記済み ${c.mem}語　／　スキップ ${c.skip}語</p>`
+  e.innerHTML=`<h2>おつかれさまでした</h2><p>要復習 ${c.rev}語／暗記済み ${c.mem}語／要復習を解除 ${c.rel}語／スキップ ${c.skip}語</p>`
     +(FC.revNos.length?'<button class="sb wide pri" data-a="rv">要復習になった単語でもう一度</button>':'')
     +'<button class="sb wide" data-a="again">同じ設定でもう一度</button><button class="sb wide" data-a="back">一覧に戻る</button>';
   e.onclick=ev=>{
@@ -458,6 +453,130 @@ function fcDlg(name,getNos,rec,noExclude){
     go.onclick=()=>{ const X=avail(); let n=parseInt(fn.value,10); if(isNaN(n)||n>X) n=X; if(n<1) n=1;
       D.pref.fc={mode:P.mode,swap:P.swap,ex:P.ex}; save(); o.remove();
       startFc(getNos,{mode:P.mode,swap:P.swap,ex:P.ex,n},rec); };
+  });
+}
+
+/* ---------- テスト ---------- */
+const TSM={hm:['見出し語','意味',1],hmain:['見出し語','主要な意味',1],blank:['例文穴埋め',0,0],blankh:['例文穴埋め(頭文字ヒントつき)',0,0]};
+let TS=null;
+const blanks=w=>w.ex.split(/\(([^()]*)\)/).filter((t,i)=>i%2);
+const tnorm=s=>s.normalize('NFKC').toLowerCase().replace(/[,、]/g,' ').replace(/\s+/g,' ').trim();
+const tsKinds=o=>{ if(o.mode==='hm'||o.mode==='hmain'){ const B=o.mode==='hm'?'mean':'main'; return o.swap?{q:B,a:'head'}:{q:'head',a:B}; } return {q:o.mode,a:'ans'}; };
+const tsFmt=o=>((o.mode==='hm'||o.mode==='hmain')&&!o.swap)?'choice':o.fmt;   // 答えが意味のときは選択問題に固定
+function chHTML(x,k){   // 答え（選択肢）の表示
+  if(k==='head') return `<span class="lw">${esc(x.w)}</span>`;
+  if(k==='ans') return `<span class="lw">${esc(blanks(x).join(' '))}</span>`;
+  const i=x.mean.indexOf('；'), red=i<0?x.mean:x.mean.slice(0,i), rest=i<0?'':x.mean.slice(i);
+  return `<span class="r">${lat(red)}</span>`+(k==='mean'?`<span class="sm">${lat(rest)}</span>`:'');
+}
+const chPlain=(x,k)=>k==='head'?x.w:k==='ans'?blanks(x).join(' '):(k==='main'?x.mean.split('；')[0]:x.mean);
+function distractors(w,k){   // 同じ品詞の他の単語（1900語全体から）4つ
+  const pool=shuffle(words.filter(x=>x.pos===w.pos&&x.no!==w.no)), seen=new Set([chPlain(w,k)]), out=[];
+  for(const x of pool){ const t=chPlain(x,k); if(!seen.has(t)){ seen.add(t); out.push(x); if(out.length===4) break; } }
+  return out;
+}
+function startTs(getNos,o,rec,deckNos){
+  const pool=deckNos||getNos().filter(n=>!(o.ex&&has(n,'mem')));
+  if(!pool.length){ toast('出題できる単語がありません'); return; }
+  const qs=shuffle(pool.slice()).slice(0,deckNos?pool.length:Math.min(o.n,pool.length));
+  TS={getNos,o,rec,qs,i:0,ok:0,wrong:[],ans:false,ch:[]};
+  if(rec){ rec.viewed=Date.now(); save(); }
+  if(location.hash==='#tsp') route(); else location.hash='#tsp';
+}
+function tsShow(){ if(TS.i>=TS.qs.length) tsEnd(); else tsQuestion(); }
+function tsQuestion(){
+  const w=words[TS.qs[TS.i]-1], o=TS.o, K=tsKinds(o), fmt=tsFmt(o);
+  TS.ans=false; $('tsEnd').hidden=true; $('tsBody').hidden=false; $('tsFb').innerHTML='';
+  $('tsProg').textContent=`${TS.i+1} / ${TS.qs.length}`;
+  $('tsQ').innerHTML=facePart(w,K.q);
+  const A=$('tsA');
+  if(fmt==='choice'){
+    TS.ch=shuffle([{x:w,ok:1},...distractors(w,K.a).map(x=>({x,ok:0}))]);
+    A.innerHTML=TS.ch.map((c,i)=>`<button class="ch" data-i="${i}">${chHTML(c.x,K.a)}</button>`).join('');
+    A.onclick=e=>{ const b=e.target.closest('.ch'); if(b&&!TS.ans) tsAnswer(!!TS.ch[+b.dataset.i].ok,+b.dataset.i); };
+  } else {
+    A.innerHTML='<input class="txt" id="tsIn" autocomplete="off" autocapitalize="off" spellcheck="false"><button class="sb wide pri" id="tsGo">回答</button>';
+    const inp=$('tsIn'); if(o.mode==='blankh') inp.value=blanks(w)[0][0];   // 頭文字ヒント付きは最初の1文字が入った状態
+    const submit=()=>{ if(TS.ans) return; const exp=K.a==='head'?w.w:blanks(w).join(' '); tsAnswer(tnorm(inp.value)===tnorm(exp),-1); };
+    $('tsGo').onclick=submit; inp.onkeydown=e=>{ if(e.key==='Enter') submit(); };
+    A.onclick=null; inp.focus();
+  }
+}
+function tsAnswer(ok,idx){
+  TS.ans=true;
+  const n=TS.qs[TS.i], w=words[n-1], o=TS.o, K=tsKinds(o), last=TS.i===TS.qs.length-1;
+  document.querySelectorAll('#tsA .ch').forEach((b,i)=>{ b.disabled=true; if(TS.ch[i].ok) b.classList.add('ok'); else if(i===idx) b.classList.add('ng'); });
+  if($('tsIn')){ $('tsIn').disabled=true; $('tsGo').disabled=true; }
+  if(ok) TS.ok++; else { TS.wrong.push(n); setTagOn(n,'rev'); }   // 不正解は自動で要復習（暗記済みだった場合は外れる）
+  const v=D.tags[n]||0;
+  let f=`<div class="fb ${ok?'ok':'ng'}">${ok?'正解！':'不正解'}</div>`;
+  if(!ok||tsFmt(o)==='write') f+=`<div class="ansl">正解: ${chHTML(w,K.a)}</div>`;
+  if(K.a==='ans') f+=`<div class="fe">${exMap(w.ex,t=>`<span class="r">${esc(t)}</span>`)}</div>`;
+  if(!ok) f+='<div class="tsnote">要復習に入りました</div>';
+  else if(!(v&BIT.mem)&&!(v&BIT.rev)) f+='<button class="sb" data-tg="mem">暗記済みにする</button>';
+  else if(v&BIT.rev) f+='<button class="sb" data-tg="rel">要復習を外す</button>';
+  f+=`<button class="sb wide pri" data-nx>${last?'結果を見る':'次へ'}</button>`;
+  $('tsFb').innerHTML=f;
+  $('tsFb').onclick=e=>{
+    const t=e.target.closest('[data-tg]'), nx=e.target.closest('[data-nx]');
+    if(t){ if(t.dataset.tg==='mem'){ setTagOn(n,'mem'); t.textContent='暗記済みにしました'; } else { const x=(D.tags[n]||0)&~BIT.rev; if(x) D.tags[n]=x; else delete D.tags[n]; save(); t.textContent='要復習を外しました'; } t.disabled=true; }
+    else if(nx){ TS.i++; tsShow(); }
+  };
+}
+function tsEnd(){
+  const t=TS.qs.length, e=$('tsEnd');
+  $('tsBody').hidden=true; e.hidden=false; $('tsProg').textContent=`${t} / ${t}`;
+  e.innerHTML=`<h2>${t}問中 ${TS.ok}問正解</h2>`
+    +(TS.wrong.length?'<div class="gt" style="text-align:left;font-size:12px;color:#777">間違えた問題</div>'+TS.wrong.map(n=>`<div class="wr"><b>${esc(words[n-1].w)}</b><span>${chHTML(words[n-1],'main')}</span></div>`).join(''):'<p>全問正解です！</p>')
+    +(TS.wrong.length?'<button class="sb wide pri" data-a="wr">間違えた問題だけもう一度</button>':'')
+    +'<button class="sb wide" data-a="again">同じ設定でもう一度</button><button class="sb wide" data-a="back">一覧に戻る</button>';
+  e.onclick=ev=>{ const a=ev.target.dataset.a; if(!a) return;
+    if(a==='back') history.back();
+    else if(a==='again') startTs(TS.getNos,TS.o,TS.rec);
+    else startTs(TS.getNos,TS.o,TS.rec,TS.wrong.slice()); };
+}
+// 一覧
+function renderTs(){
+  const fx=[['bm','ブックマーク'],['rev','要復習']].map(([k,n])=>`<div class="li" data-f="${k}"><span class="lic t-${k} on">${IC[k]}</span><span class="ln">${n}</span><span class="lc">${tagNos(k).length}語</span></div>`).join('');
+  const us=D.ts.map((l,i)=>({l,i})).sort((a,b)=>(b.l.viewed||0)-(a.l.viewed||0)||a.l.at-b.l.at)   // プレイしたリストが上
+    .map(({l,i})=>`<div class="li" data-i="${i}"><span class="lic"></span><span class="ln">${esc(l.name)}</span><span class="lc">${l.nos.length}語</span><button class="mm" data-i="${i}" aria-label="メニュー"><svg class="ico" viewBox="0 0 24 24"><circle cx="12" cy="5" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="19" r="1.6" fill="currentColor"/></svg></button></div>`).join('');
+  $('tsList').innerHTML=fx+us;
+}
+$('tsList').addEventListener('click',e=>{
+  const mm=e.target.closest('.mm'); if(mm){ listMenu(mm,'ts',+mm.dataset.i); return; }
+  const el=e.target.closest('.li'); if(!el) return;
+  if(el.dataset.f){ const k=el.dataset.f; tsDlg(FIXED.find(x=>x[0]===k)[1],()=>tagNos(k),null,k==='rev'); }
+  else { const l=D.ts[+el.dataset.i]; tsDlg(l.name,()=>l.nos,l,false); }
+});
+function tsDlg(name,getNos,rec,noExclude){
+  const P=Object.assign({mode:'hm',swap:0,fmt:'choice',ex:1},D.pref.ts||{});
+  if(noExclude) P.ex=0;
+  const modes=Object.keys(TSM);
+  modal(`<h3>${esc(name)}</h3>`+(noExclude?'':'<label><input type="checkbox" id="fx">暗記済みは除外</label>')
+    +'<div class="rg" style="margin-top:6px"><input class="num" id="fn" type="number" inputmode="numeric" min="1"> 語 / <span id="fX"></span>語</div>'
+    +'<div class="fh"><span>問い</span><button id="fsw" aria-label="問いと答えを入れ替える">⇄</button><span>答え</span></div>'
+    +modes.map(m=>`<label><input type="radio" name="tm" value="${m}"><span data-q="${m}"></span></label>`).join('')
+    +'<div class="gt" style="display:block">出題形式</div><label><input type="radio" name="tf" value="choice">選択問題</label><label><input type="radio" name="tf" value="write">筆記問題</label>'
+    +'<button class="sb wide pri" id="tgo">テストを開始</button>',o=>{
+    const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#tgo'), sw=o.querySelector('#fsw');
+    const avail=()=>getNos().filter(n=>!(P.ex&&has(n,'mem'))).length;
+    const clamp=()=>{ const X=avail(); o.querySelector('#fX').textContent=X; const v=parseInt(fn.value,10);
+      if(!isNaN(v)&&v>X) fn.value=X; if(!isNaN(v)&&v<1&&X>0) fn.value=1; go.disabled=X===0; };
+    const labels=()=>{ modes.forEach(m=>{ const d=TSM[m], s=P.swap&&d[2]; o.querySelector(`[data-q=${m}]`).textContent=d[1]?(s?`${d[1]} → ${d[0]}`:`${d[0]} → ${d[1]}`):d[0];
+        o.querySelector(`input[name=tm][value=${m}]`).checked=P.mode===m; });
+      sw.disabled=!TSM[P.mode][2];
+      const forced=(P.mode==='hm'||P.mode==='hmain')&&!P.swap, f=forced?'choice':P.fmt;   // 答えが意味のときは選択問題に固定
+      o.querySelector('input[name=tf][value=write]').disabled=forced;
+      o.querySelectorAll('input[name=tf]').forEach(r=>r.checked=r.value===f); };
+    if(fx){ fx.checked=!!P.ex; fx.onchange=()=>{ P.ex=fx.checked?1:0; fn.value=avail(); clamp(); }; }
+    fn.value=avail(); clamp(); labels();
+    o.querySelectorAll('input[name=tm]').forEach(r=>r.onchange=()=>{ P.mode=r.value; labels(); });
+    o.querySelectorAll('input[name=tf]').forEach(r=>r.onchange=()=>{ P.fmt=r.value; labels(); });
+    sw.onclick=()=>{ P.swap=P.swap?0:1; labels(); };
+    fn.oninput=clamp;
+    go.onclick=()=>{ const X=avail(); let n=parseInt(fn.value,10); if(isNaN(n)||n>X) n=X; if(n<1) n=1;
+      D.pref.ts={mode:P.mode,swap:P.swap,fmt:P.fmt,ex:P.ex}; save(); o.remove();
+      startTs(getNos,{mode:P.mode,swap:P.swap,fmt:P.fmt,ex:P.ex,n},rec); };
   });
 }
 
