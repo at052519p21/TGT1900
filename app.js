@@ -155,7 +155,7 @@ function route(){
   } else { q.blur(); pop.hidden=true; }
   cur=next; document.body.className='scr-'+next;
   if(next==='view'){ $('view').classList.toggle('plain',!!viewState.plain); $('ttl').textContent=viewState.title; renderView(); scrollTo(0,0); }
-  else { if(next==='ml') renderMl(); if(next==='fc') renderFc(); if(next==='ts') renderTs(); if(next==='tsp') tsShow(); if(next==='fcp') fcShow(); if(next==='rs') showRs(h); scrollTo(0,sc[next]||0); }
+  else { if(next==='home') renderHomeStat(); if(next==='ml') renderMl(); if(next==='fc') renderFc(); if(next==='ts') renderTs(); if(next==='tsp') tsShow(); if(next==='fcp') fcShow(); if(next==='rs') showRs(h); scrollTo(0,sc[next]||0); }
 }
 addEventListener('hashchange',()=>{ if(words.length) route(); });
 document.querySelectorAll('.back').forEach(b=>b.onclick=()=>history.back());
@@ -340,80 +340,73 @@ function facePart(w,k){
   return `<div class="fe">${exMap(w.ex,t=>`<span class="bl">${hint?esc(t[0])+'…':'&nbsp;'}</span>`)}</div><div class="fj">${esc(w.ja)}</div>`;
 }
 function fcShowCard(){
-  const w=words[FC.deck[FC.i]-1], ks=FCK[FC.o.mode], sw=FC.o.swap&&FCM[FC.o.mode][2];
+  const n=FC.deck[FC.i], w=words[n-1], ks=FCK[FC.o.mode], sw=FC.o.swap&&FCM[FC.o.mode][2];
   const k=(sw?[ks[1],ks[0]]:ks)[FC.flip?1:0];
-  $('fcFace').innerHTML=facePart(w,k);
+  $('fcFace').innerHTML=facePart(w,k); $('fcTags').innerHTML=tagBtns(n);
 }
-function fcShow(){
-  const c=$('fcCard'); c.style.transition='none'; c.style.transform='';
-  document.querySelectorAll('.hint').forEach(x=>x.style.opacity=0);
-  const done=FC.i>=FC.deck.length;
-  c.hidden=done; $('fcEnd').hidden=!done;
+// anim=true のときは、新しいカードが d と反対側から入ってくる。カードは必ず表の状態で出る
+function fcShow(anim,d){
+  const c=$('fcCard'), done=FC.i>=FC.deck.length;
+  c.hidden=done; $('fcEnd').hidden=!done; $('fcNote').hidden=done;
   $('fcProg').textContent=`${Math.min(FC.i+1,FC.deck.length)} / ${FC.deck.length}`;
-  if(!done) document.querySelector('.hint.r').textContent=has(FC.deck[FC.i],'rev')?'要復習を解除':'暗記済み';   // 要復習の単語は右スライド＝解除
-  if(done) fcEnd(); else fcShowCard();
+  c.style.transition='none'; c.style.transform='';
+  if(done){ fcEnd(); return; }
+  fcShowCard();
+  if(anim){ c.style.transform=`translateX(${-d*480}px)`; void c.offsetWidth; c.style.transition='transform .2s'; c.style.transform=''; }
 }
 function startFc(getNos,o,rec,deckNos){
-  let pool=deckNos||getNos().filter(n=>!(o.ex&&has(n,'mem')));
+  const pool=deckNos||getNos().filter(n=>!(o.ex&&has(n,'mem')));
   if(!pool.length){ toast('出題できる単語がありません'); return; }
-  const deck=shuffle(pool.slice()).slice(0,deckNos?pool.length:Math.min(o.n,pool.length));
-  FC={getNos,o,rec,deck,i:0,flip:false,hist:[],cnt:{rev:0,mem:0,rel:0,skip:0},revNos:[]};
+  const deck=shuffle(pool.slice()).slice(0,deckNos?pool.length:Math.min(o.n,pool.length));   // 並びは開始時に確定（やり直すたびに変わる）
+  FC={getNos,o,rec,deck,i:0,flip:false};
   if(rec){ rec.viewed=Date.now(); save(); }
   if(location.hash==='#fcp') route(); else location.hash='#fcp';
 }
 function setTagOn(n,k){ let v=(D.tags[n]||0)|BIT[k]; v&=~(k==='mem'?BIT.rev:BIT.mem); D.tags[n]=v; save(); }
-function fcAct(act,dx,dy){
-  if(fcBusy||!FC||FC.i>=FC.deck.length) return; fcBusy=true;
-  const c=$('fcCard'), n=FC.deck[FC.i];
-  c.style.transition='transform .18s'; c.style.transform=`translate(${dx*520}px,${dy*520}px) rotate(${dx*18}deg)`;
-  setTimeout(()=>{
-    const pv=D.tags[n]||0;
-    if(act==='mem'&&(pv&BIT.rev)) act='rel';   // 要復習の単語を右へ → 暗記済みにはせず、要復習を解除するだけ
-    FC.hist.push({n,prev:pv,act});
-    if(act==='rel'){ const v=pv&~BIT.rev; if(v) D.tags[n]=v; else delete D.tags[n]; save(); }
-    else if(act!=='skip') setTagOn(n,act);
-    FC.cnt[act]++; if(act==='rev') FC.revNos.push(n);
-    FC.i++; FC.flip=false; fcBusy=false; fcShow();
-  },180);
-}
-function fcUndo(){
-  if(fcBusy||!FC||!FC.hist.length) return;
-  const h=FC.hist.pop();
-  if(h.prev) D.tags[h.n]=h.prev; else delete D.tags[h.n];   // 先の分類を取り消す
-  save(); FC.cnt[h.act]--; if(h.act==='rev') FC.revNos.pop();
-  FC.i--; FC.flip=false; fcShow();
+// 左へスライド＝前の単語（d=-1）、右へスライド＝次の単語（d=+1）。最後を過ぎると終了画面
+function fcGo(d){
+  if(fcBusy||!FC||FC.i>=FC.deck.length) return;
+  const c=$('fcCard'), t=FC.i+d;
+  c.style.transition='transform .18s';
+  if(t<0){ c.style.transform=''; return; }
+  fcBusy=true; c.style.transform=`translateX(${d*520}px)`;
+  setTimeout(()=>{ FC.i=t; FC.flip=false; fcBusy=false; fcShow(true,d); },180);
 }
 function fcEnd(){
-  const e=$('fcEnd'), c=FC.cnt;
-  e.innerHTML=`<h2>おつかれさまでした</h2><p>要復習 ${c.rev}語／暗記済み ${c.mem}語／要復習を解除 ${c.rel}語／スキップ ${c.skip}語</p>`
-    +(FC.revNos.length?'<button class="sb wide pri" data-a="rv">要復習になった単語でもう一度</button>':'')
-    +'<button class="sb wide" data-a="again">同じ設定でもう一度</button><button class="sb wide" data-a="back">一覧に戻る</button>';
+  const N=FC.deck.length; let m=0,r=0;
+  FC.deck.forEach(n=>{ const v=D.tags[n]||0; if(v&BIT.mem) m++; else if(v&BIT.rev) r++; });
+  const u=N-m-r, pr=r/N*100, pm=pr+m/N*100, e=$('fcEnd');
+  e.innerHTML='<h2>おつかれさまでした</h2>'
+    +`<div class="pie" style="background:conic-gradient(var(--red) 0 ${pr}%,var(--blue) ${pr}% ${pm}%,#cfcfcf ${pm}% 100%)"><div class="pc"><b>${N}</b><span>単語</span></div></div>`
+    +`<p class="pn">全 ${N} 単語中</p>`
+    +`<div class="lg"><span><i style="background:var(--red)"></i>要復習 ${r}語</span><span><i style="background:var(--blue)"></i>暗記済み ${m}語</span><span><i style="background:#cfcfcf"></i>タグなし ${u}語</span></div>`
+    +(r?'<button class="sb wide pri" data-a="rv">要復習の単語でもう一度</button>':'')
+    +'<button class="sb wide" data-a="again">同じ設定でもう一度</button><button class="sb wide" data-a="back">一覧に戻る</button><button class="sb wide" data-a="last">最後のカードに戻る</button>';
   e.onclick=ev=>{
     const a=ev.target.dataset.a; if(!a) return;
     if(a==='back') history.back();
     else if(a==='again') startFc(FC.getNos,FC.o,FC.rec);
-    else startFc(FC.getNos,FC.o,FC.rec,FC.revNos.slice());
+    else if(a==='last'){ FC.i=FC.deck.length-1; FC.flip=false; fcShow(true,-1); }
+    else startFc(FC.getNos,FC.o,FC.rec,FC.deck.filter(n=>has(n,'rev')));
   };
 }
-// カードの操作: タップでめくる／左=要復習／右=暗記済み／上=スキップ（キーボードの矢印・スペースも可）
+// カードの操作: タップでめくる／水平にスライドして前・次へ（キーボードの矢印・スペースも可）
 (function(){
-  const c=$('fcCard'); let d=null; const T=90;
-  const hint=(dx,dy)=>{ const [l,r,u]=document.querySelectorAll('.hint'); l.style.opacity=Math.min(1,Math.max(0,-dx/T)); r.style.opacity=Math.min(1,Math.max(0,dx/T)); u.style.opacity=Math.abs(dy)>Math.abs(dx)?Math.min(1,Math.max(0,-dy/T)):0; };
-  c.addEventListener('pointerdown',e=>{ if(fcBusy) return; d={x:e.clientX,y:e.clientY,dx:0,dy:0}; c.setPointerCapture(e.pointerId); c.style.transition='none'; });
-  c.addEventListener('pointermove',e=>{ if(!d) return; d.dx=e.clientX-d.x; d.dy=e.clientY-d.y;
-    c.style.transform=`translate(${d.dx}px,${Math.min(0,d.dy)}px) rotate(${d.dx/20}deg)`; hint(d.dx,d.dy); });
+  const c=$('fcCard'); let d=null; const T=70;
+  c.addEventListener('pointerdown',e=>{ if(fcBusy||e.target.closest('.t3')) return; d={x:e.clientX,y:e.clientY,dx:0,dy:0}; c.setPointerCapture(e.pointerId); c.style.transition='none'; });
+  c.addEventListener('pointermove',e=>{ if(!d) return; d.dx=e.clientX-d.x; d.dy=e.clientY-d.y; c.style.transform=`translateX(${d.dx}px)`; });
   const end=e=>{ if(!d) return; const {dx,dy}=d; d=null; c.style.transition='transform .15s';
     if(Math.abs(dx)<8&&Math.abs(dy)<8){ c.style.transform=''; if(e.type==='pointerup'){ FC.flip=!FC.flip; fcShowCard(); } return; }
-    if(Math.abs(dx)>=Math.abs(dy)&&dx<-T) fcAct('rev',-1,0);
-    else if(Math.abs(dx)>=Math.abs(dy)&&dx>T) fcAct('mem',1,0);
-    else if(dy<-T&&Math.abs(dy)>Math.abs(dx)) fcAct('skip',0,-1);
-    else { c.style.transform=''; hint(0,0); } };
+    if(dx<-T) fcGo(-1); else if(dx>T) fcGo(1); else c.style.transform=''; };
   c.addEventListener('pointerup',end); c.addEventListener('pointercancel',end);
-  addEventListener('keydown',e=>{ if(cur!=='fcp') return;
-    if(e.key==='ArrowLeft') fcAct('rev',-1,0); else if(e.key==='ArrowRight') fcAct('mem',1,0); else if(e.key==='ArrowUp') fcAct('skip',0,-1);
-    else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); if(FC&&FC.i<FC.deck.length){ FC.flip=!FC.flip; fcShowCard(); } }
-    else if(e.key==='z'||e.key==='Backspace') fcUndo(); });
-  $('fcUndo').onclick=fcUndo;
+  $('fcTags').addEventListener('click',e=>{   // タグは押したときだけ変わる
+    const b=e.target.closest('.t3'); if(!b) return;
+    toggleTag(+b.dataset.n,b.dataset.t);
+    b.parentNode.querySelectorAll('.t3').forEach(x=>x.classList.toggle('on',has(+x.dataset.n,x.dataset.t)));
+  });
+  addEventListener('keydown',e=>{ if(cur!=='fcp'||!FC||FC.i>=FC.deck.length) return;
+    if(e.key==='ArrowLeft') fcGo(-1); else if(e.key==='ArrowRight') fcGo(1);
+    else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); FC.flip=!FC.flip; fcShowCard(); } });
 })();
 
 // 一覧
@@ -429,6 +422,7 @@ $('fcList').addEventListener('click',e=>{
   if(el.dataset.f){ const k=el.dataset.f; fcDlg(FIXED.find(x=>x[0]===k)[1],()=>tagNos(k),null,k==='rev'); }
   else { const l=D.fc[+el.dataset.i]; fcDlg(l.name,()=>l.nos,l,false); }
 });
+const rowTxt=(d,s)=>d[1]?`<span class="gl">${s?d[1]:d[0]}</span><span class="ga">→</span><span class="gr">${s?d[0]:d[1]}</span>`:`<span class="c">${d[0]}</span>`;
 // 設定ウィンドウ
 function fcDlg(name,getNos,rec,noExclude){
   const P=Object.assign({mode:'hm',swap:0,ex:1},D.pref.fc||{});
@@ -436,14 +430,14 @@ function fcDlg(name,getNos,rec,noExclude){
   const modes=Object.keys(FCM);
   modal(`<h3>${esc(name)}</h3>`+(noExclude?'':'<label><input type="checkbox" id="fx">暗記済みは除外</label>')
     +'<div class="rg" style="margin-top:6px"><input class="num" id="fn" type="number" inputmode="numeric" min="1"> 語 / <span id="fX"></span>語</div>'
-    +'<div class="fh"><span>表</span><button id="fsw" aria-label="表と裏を入れ替える">⇄</button><span>裏</span></div>'
-    +modes.map(m=>`<label><input type="radio" name="fm" value="${m}"><span data-m="${m}"></span></label>`).join('')
+    +'<div class="fh2"><span class="hl">表</span><button id="fsw" aria-label="表と裏を入れ替える">⇄</button><span>裏</span></div>'
+    +modes.map(m=>`<label class="rowm"><input type="radio" name="fm" value="${m}"><span class="g" data-m="${m}"></span></label>`).join('')
     +'<button class="sb wide pri" id="fgo">フラッシュカードを開始</button>',o=>{
     const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#fgo'), sw=o.querySelector('#fsw');
     const avail=()=>getNos().filter(n=>!(P.ex&&has(n,'mem'))).length;
     const clamp=()=>{ const X=avail(); o.querySelector('#fX').textContent=X; let v=parseInt(fn.value,10);
       if(!isNaN(v)&&v>X) fn.value=X; if(!isNaN(v)&&v<1&&X>0) fn.value=1; go.disabled=X===0; };
-    const labels=()=>{ modes.forEach(m=>{ const d=FCM[m], s=P.swap&&d[2]; o.querySelector(`[data-m=${m}]`).textContent=d[1]?(s?`${d[1]} → ${d[0]}`:`${d[0]} → ${d[1]}`):d[0];
+    const labels=()=>{ modes.forEach(m=>{ const d=FCM[m], s=P.swap&&d[2]; o.querySelector(`[data-m=${m}]`).innerHTML=rowTxt(d,s);
       o.querySelector(`input[value=${m}]`).checked=P.mode===m; }); sw.disabled=!FCM[P.mode][2]; };
     if(fx){ fx.checked=!!P.ex; fx.onchange=()=>{ P.ex=fx.checked?1:0; fn.value=avail(); clamp(); }; }
     fn.value=avail(); clamp(); labels();
@@ -554,15 +548,15 @@ function tsDlg(name,getNos,rec,noExclude){
   const modes=Object.keys(TSM);
   modal(`<h3>${esc(name)}</h3>`+(noExclude?'':'<label><input type="checkbox" id="fx">暗記済みは除外</label>')
     +'<div class="rg" style="margin-top:6px"><input class="num" id="fn" type="number" inputmode="numeric" min="1"> 語 / <span id="fX"></span>語</div>'
-    +'<div class="fh"><span>問い</span><button id="fsw" aria-label="問いと答えを入れ替える">⇄</button><span>答え</span></div>'
-    +modes.map(m=>`<label><input type="radio" name="tm" value="${m}"><span data-q="${m}"></span></label>`).join('')
+    +'<div class="fh2"><span class="hl">問い</span><button id="fsw" aria-label="問いと答えを入れ替える">⇄</button><span>答え</span></div>'
+    +modes.map(m=>`<label class="rowm"><input type="radio" name="tm" value="${m}"><span class="g" data-q="${m}"></span></label>`).join('')
     +'<div class="gt" style="display:block">出題形式</div><label><input type="radio" name="tf" value="choice">選択問題</label><label><input type="radio" name="tf" value="write">筆記問題</label>'
     +'<button class="sb wide pri" id="tgo">テストを開始</button>',o=>{
     const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#tgo'), sw=o.querySelector('#fsw');
     const avail=()=>getNos().filter(n=>!(P.ex&&has(n,'mem'))).length;
     const clamp=()=>{ const X=avail(); o.querySelector('#fX').textContent=X; const v=parseInt(fn.value,10);
       if(!isNaN(v)&&v>X) fn.value=X; if(!isNaN(v)&&v<1&&X>0) fn.value=1; go.disabled=X===0; };
-    const labels=()=>{ modes.forEach(m=>{ const d=TSM[m], s=P.swap&&d[2]; o.querySelector(`[data-q=${m}]`).textContent=d[1]?(s?`${d[1]} → ${d[0]}`:`${d[0]} → ${d[1]}`):d[0];
+    const labels=()=>{ modes.forEach(m=>{ const d=TSM[m], s=P.swap&&d[2]; o.querySelector(`[data-q=${m}]`).innerHTML=rowTxt(d,s);
         o.querySelector(`input[name=tm][value=${m}]`).checked=P.mode===m; });
       sw.disabled=!TSM[P.mode][2];
       const forced=(P.mode==='hm'||P.mode==='hmain')&&!P.swap, f=forced?'choice':P.fmt;   // 答えが意味のときは選択問題に固定
@@ -596,6 +590,11 @@ $('bkBtn').onclick=()=>modal('<h3>バックアップ</h3><p class="note">印・�
     });
   };
 });
+
+/* ---------- ホーム上部の件数 ---------- */
+function renderHomeStat(){
+  $('homeStat').innerHTML=`<span class="t-mem on"><i>${IC.mem}</i><em style="font-style:normal;color:#222">暗記済み：${tagNos('mem').length}単語</em></span><span class="t-rev on"><i>${IC.rev}</i><em style="font-style:normal;color:#222">要復習：${tagNos('rev').length}単語</em></span>`;
+}
 
 /* ---------- CSVの読み込み ---------- */
 const msg=$('msg');
