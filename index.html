@@ -7,13 +7,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css?v=5">
+<link rel="stylesheet" href="style.css?v=6">
 </head>
 <body>
 <div id="msg" hidden></div>
 
 <!-- ホーム -->
-<section id="home"><div class="hgrid">
+<section id="home"><div id="homeStat"></div><div class="hgrid">
   <button class="hb" data-go="all"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M12 6c-2-1.5-5-2-9-2v14c4 0 7 .5 9 2 2-1.5 5-2 9-2V4c-4 0-7 .5-9 2zM12 6v14"/></svg></span>1900</button>
   <button class="hb" data-go="toc"><span class="c"><svg class="ico" viewBox="0 0 24 24"><circle cx="4.5" cy="6" r="1.2" fill="currentColor"/><circle cx="4.5" cy="12" r="1.2" fill="currentColor"/><circle cx="4.5" cy="18" r="1.2" fill="currentColor"/><path d="M9 6h11M9 12h11M9 18h11"/></svg></span>目次</button>
   <button class="hb" data-go="range"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></span>範囲選択</button>
@@ -21,7 +21,6 @@
   <button class="hb" data-go="card"><span class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="3" transform="rotate(-10 9.5 13.5)"/><rect x="9" y="3" width="13" height="15" rx="3" transform="rotate(10 15.5 10.5)" fill="#fff"/></svg></span>フラッシュカード</button>
   <button class="hb" data-go="test"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg></span>テスト</button>
 </div>
-  <div class="ver">段階④ テスト対応版</div>
   <button class="lnk" id="bkBtn">バックアップ</button>
 </section>
 
@@ -55,11 +54,10 @@
 <section id="fcPlay">
   <div class="bar"><button class="back" aria-label="戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M4 12h16M12 4l-8 8 8 8"/></svg></button><b class="ttl" id="fcProg"></b></div>
   <div id="fcArea">
-    <div id="fcCard"><span class="hint l">要復習</span><span class="hint r">暗記済み</span><span class="hint u">スキップ</span><div id="fcFace"></div></div>
+    <div id="fcCard"><div id="fcFace"></div><div class="ctags" id="fcTags"></div></div>
     <div id="fcEnd" hidden></div>
   </div>
-  <div class="fcnote">タップでめくる／←要復習　→暗記済み・解除　↑スキップ</div>
-  <button id="fcUndo" aria-label="1つ前に戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
+  <div class="fcnote" id="fcNote">タップでめくる<br>←前　次→</div>
 </section>
 
 <!-- テスト一覧 -->
@@ -102,6 +100,6 @@
     <div class="pi" data-m="part"><span class="ck"></span>部分一致</div>
   </div>
 </div>
-<script src="app.js?v=5"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>
