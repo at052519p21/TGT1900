@@ -169,15 +169,10 @@ li.open>.row>.tg::before{transform:rotate(135deg)}
 .fe{font-family:var(--serif);font-size:20px;line-height:1.7}
 .fj{font-size:17px;color:#333}
 .bl{display:inline-block;min-width:4.5em;border-bottom:2px solid var(--red);text-align:center;color:var(--red)}
-.hint{position:absolute;top:14px;font-weight:bold;font-size:15px;padding:2px 10px;border:2px solid;border-radius:8px;opacity:0;pointer-events:none}
-.hint.l{left:14px;color:var(--red)}.hint.r{right:14px;color:var(--blue)}.hint.u{left:50%;transform:translateX(-50%);color:#555}
-.fcnote{text-align:center;font-size:11px;color:#888;padding:0 72px 30px}
-#fcUndo{position:fixed;left:14px;bottom:18px;width:48px;height:48px;border-radius:50%;border:1px solid #bbb;background:#f4f4f4;color:#333;display:flex;align-items:center;justify-content:center;padding:0}
 #fcEnd{width:100%;max-width:440px;text-align:center}
 #fcEnd h2{font-size:20px;margin:0 0 8px}
 #fcEnd p{margin:4px 0 14px;font-size:15px}
 
-.ver{position:fixed;left:0;right:0;bottom:38px;text-align:center;font-size:11px;color:#aaa}
 
 
 /* ===== テスト ===== */
@@ -196,3 +191,31 @@ li.open>.row>.tg::before{transform:rotate(135deg)}
 .wr{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid #eee;text-align:left}
 .wr b{font-family:var(--serif)}
 .fe{margin:0}
+
+[hidden]{display:none!important}
+/* ===== フラッシュカード（水平スライド式） ===== */
+.fcnote{text-align:center;font-size:12px;color:#888;padding:0 0 28px;line-height:1.6}
+.ctags{position:absolute;right:6px;bottom:4px;display:flex}
+#fcEnd{padding:8px 0 24px}
+.pie{width:210px;height:210px;border-radius:50%;margin:10px auto 14px;position:relative}
+.pc{position:absolute;inset:36px;border-radius:50%;background:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.2}
+.pc b{font-size:36px}.pc span{font-size:13px;color:#666}
+#fcEnd .pn{margin:0 0 8px;font-size:15px;color:#333}
+.lg{display:flex;flex-direction:column;gap:6px;align-items:center;margin:0 0 20px;font-size:15px}
+.lg i{display:inline-block;width:12px;height:12px;border-radius:50%;margin-right:8px;vertical-align:-1px}
+
+/* ===== 設定ウィンドウ: 表⇄裏・問い⇄答えの矢印を中央に揃える ===== */
+.ov .fh2{display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center;margin:12px 0 4px 26px;font-size:13px;color:#777}
+.ov .fh2 .hl{text-align:right}
+.ov .fh2 button{border:1px solid #bbb;background:#f4f4f4;border-radius:14px;padding:2px 14px;font-size:15px;color:#333}
+.ov .fh2 button:disabled{opacity:.35}
+.ov .rowm .g{flex:1;display:grid;grid-template-columns:1fr auto 1fr;gap:8px;align-items:center}
+.ov .g .gl{text-align:right}.ov .g .ga{color:#777}.ov .g .c{grid-column:1/-1;text-align:center}
+.sb.pri:disabled{background:#bbb;border-color:#bbb;color:#fff}
+
+/* ===== ホーム上部の件数 ===== */
+#home{position:relative}
+#homeStat{position:absolute;top:0;left:0;right:0;padding:18px 8px;display:flex;justify-content:center;align-items:center;gap:20px;font-size:14px;color:#222}
+#homeStat span{display:inline-flex;align-items:center;gap:6px}
+#homeStat i{display:inline-block;width:18px;height:18px}
+#homeStat svg{width:100%;height:100%;display:block}
