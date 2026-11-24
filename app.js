@@ -352,7 +352,7 @@ function fcShow(anim,d){
   c.style.transition='none'; c.style.transform='';
   if(done){ fcEnd(); return; }
   fcShowCard();
-  if(anim){ c.style.transform=`translateX(${-d*480}px)`; void c.offsetWidth; c.style.transition='transform .2s'; c.style.transform=''; }
+  if(anim){ c.style.transform=`translateX(${d*480}px)`; void c.offsetWidth; c.style.transition='transform .2s'; c.style.transform=''; }
 }
 function startFc(getNos,o,rec,deckNos){
   const pool=deckNos||getNos().filter(n=>!(o.ex&&has(n,'mem')));
@@ -363,13 +363,13 @@ function startFc(getNos,o,rec,deckNos){
   if(location.hash==='#fcp') route(); else location.hash='#fcp';
 }
 function setTagOn(n,k){ let v=(D.tags[n]||0)|BIT[k]; v&=~(k==='mem'?BIT.rev:BIT.mem); D.tags[n]=v; save(); }
-// 左へスライド＝前の単語（d=-1）、右へスライド＝次の単語（d=+1）。最後を過ぎると終了画面
+// 左へスライド＝次の単語（d=+1）、右へスライド＝前の単語（d=-1）。最後を過ぎると終了画面
 function fcGo(d){
   if(fcBusy||!FC||FC.i>=FC.deck.length) return;
   const c=$('fcCard'), t=FC.i+d;
   c.style.transition='transform .18s';
   if(t<0){ c.style.transform=''; return; }
-  fcBusy=true; c.style.transform=`translateX(${d*520}px)`;
+  fcBusy=true; c.style.transform=`translateX(${-d*520}px)`;
   setTimeout(()=>{ FC.i=t; FC.flip=false; fcBusy=false; fcShow(true,d); },180);
 }
 function fcEnd(){
@@ -397,7 +397,7 @@ function fcEnd(){
   c.addEventListener('pointermove',e=>{ if(!d) return; d.dx=e.clientX-d.x; d.dy=e.clientY-d.y; c.style.transform=`translateX(${d.dx}px)`; });
   const end=e=>{ if(!d) return; const {dx,dy}=d; d=null; c.style.transition='transform .15s';
     if(Math.abs(dx)<8&&Math.abs(dy)<8){ c.style.transform=''; if(e.type==='pointerup'){ FC.flip=!FC.flip; fcShowCard(); } return; }
-    if(dx<-T) fcGo(-1); else if(dx>T) fcGo(1); else c.style.transform=''; };
+    if(dx<-T) fcGo(1); else if(dx>T) fcGo(-1); else c.style.transform=''; };   // 左へ＝次、右へ＝前
   c.addEventListener('pointerup',end); c.addEventListener('pointercancel',end);
   $('fcTags').addEventListener('click',e=>{   // タグは押したときだけ変わる
     const b=e.target.closest('.t3'); if(!b) return;
@@ -405,7 +405,7 @@ function fcEnd(){
     b.parentNode.querySelectorAll('.t3').forEach(x=>x.classList.toggle('on',has(+x.dataset.n,x.dataset.t)));
   });
   addEventListener('keydown',e=>{ if(cur!=='fcp'||!FC||FC.i>=FC.deck.length) return;
-    if(e.key==='ArrowLeft') fcGo(-1); else if(e.key==='ArrowRight') fcGo(1);
+    if(e.key==='ArrowLeft') fcGo(1); else if(e.key==='ArrowRight') fcGo(-1);
     else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); FC.flip=!FC.flip; fcShowCard(); } });
 })();
 
@@ -422,31 +422,31 @@ $('fcList').addEventListener('click',e=>{
   if(el.dataset.f){ const k=el.dataset.f; fcDlg(FIXED.find(x=>x[0]===k)[1],()=>tagNos(k),null,k==='rev'); }
   else { const l=D.fc[+el.dataset.i]; fcDlg(l.name,()=>l.nos,l,false); }
 });
-const rowTxt=(d,s)=>d[1]?`<span class="gl">${s?d[1]:d[0]}</span><span class="ga">→</span><span class="gr">${s?d[0]:d[1]}</span>`:`<span class="c">${d[0]}</span>`;
+const rowTxt=(d,s)=>d[1]?`<span class="gl">${s?d[1]:d[0]}</span><span class="gs">⇄</span><span class="gr">${s?d[0]:d[1]}</span>`:`<span class="gc">${d[0]}</span>`;
 // 設定ウィンドウ
 function fcDlg(name,getNos,rec,noExclude){
-  const P=Object.assign({mode:'hm',swap:0,ex:1},D.pref.fc||{});
+  const P=Object.assign({mode:'hm',ex:1},D.pref.fc||{}); P.sw=Object.assign({hm:0,hmain:0,exja:0},P.sw||{});
   if(noExclude) P.ex=0;
   const modes=Object.keys(FCM);
   modal(`<h3>${esc(name)}</h3>`+(noExclude?'':'<label><input type="checkbox" id="fx">暗記済みは除外</label>')
     +'<div class="rg" style="margin-top:6px"><input class="num" id="fn" type="number" inputmode="numeric" min="1"> 語 / <span id="fX"></span>語</div>'
-    +'<div class="fh2"><span class="hl">表</span><button id="fsw" aria-label="表と裏を入れ替える">⇄</button><span>裏</span></div>'
-    +modes.map(m=>`<label class="rowm"><input type="radio" name="fm" value="${m}"><span class="g" data-m="${m}"></span></label>`).join('')
+    +'<div class="gt" style="display:block">表 ⇄ 裏（⇄を押すと、その行だけ左右が入れ替わります）</div>'
+    +modes.map(m=>`<button type="button" class="mrow" data-m="${m}"></button>`).join('')
     +'<button class="sb wide pri" id="fgo">フラッシュカードを開始</button>',o=>{
-    const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#fgo'), sw=o.querySelector('#fsw');
+    const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#fgo');
     const avail=()=>getNos().filter(n=>!(P.ex&&has(n,'mem'))).length;
     const clamp=()=>{ const X=avail(); o.querySelector('#fX').textContent=X; let v=parseInt(fn.value,10);
       if(!isNaN(v)&&v>X) fn.value=X; if(!isNaN(v)&&v<1&&X>0) fn.value=1; go.disabled=X===0; };
-    const labels=()=>{ modes.forEach(m=>{ const d=FCM[m], s=P.swap&&d[2]; o.querySelector(`[data-m=${m}]`).innerHTML=rowTxt(d,s);
-      o.querySelector(`input[value=${m}]`).checked=P.mode===m; }); sw.disabled=!FCM[P.mode][2]; };
+    const labels=()=>modes.forEach(m=>{ const b=o.querySelector(`.mrow[data-m=${m}]`); b.innerHTML=rowTxt(FCM[m],P.sw[m]); b.classList.toggle('sel',P.mode===m); });
     if(fx){ fx.checked=!!P.ex; fx.onchange=()=>{ P.ex=fx.checked?1:0; fn.value=avail(); clamp(); }; }
     fn.value=avail(); clamp(); labels();
-    o.querySelectorAll('input[name=fm]').forEach(r=>r.onchange=()=>{ P.mode=r.value; labels(); });
-    sw.onclick=()=>{ P.swap=P.swap?0:1; labels(); };
+    o.addEventListener('click',e=>{ const b=e.target.closest('.mrow'); if(!b) return; const m=b.dataset.m;
+      if(e.target.closest('.gs')&&FCM[m][2]) P.sw[m]=P.sw[m]?0:1;   // ⇄ はその行だけ入れ替え（その行も選択）
+      P.mode=m; labels(); });
     fn.oninput=clamp;
     go.onclick=()=>{ const X=avail(); let n=parseInt(fn.value,10); if(isNaN(n)||n>X) n=X; if(n<1) n=1;
-      D.pref.fc={mode:P.mode,swap:P.swap,ex:P.ex}; save(); o.remove();
-      startFc(getNos,{mode:P.mode,swap:P.swap,ex:P.ex,n},rec); };
+      D.pref.fc={mode:P.mode,sw:P.sw,ex:P.ex}; save(); o.remove();
+      startFc(getNos,{mode:P.mode,swap:P.sw[P.mode]||0,ex:P.ex,n},rec); };
   });
 }
 
@@ -543,34 +543,33 @@ $('tsList').addEventListener('click',e=>{
   else { const l=D.ts[+el.dataset.i]; tsDlg(l.name,()=>l.nos,l,false); }
 });
 function tsDlg(name,getNos,rec,noExclude){
-  const P=Object.assign({mode:'hm',swap:0,fmt:'choice',ex:1},D.pref.ts||{});
+  const P=Object.assign({mode:'hm',fmt:'choice',ex:1},D.pref.ts||{}); P.sw=Object.assign({hm:0,hmain:0},P.sw||{});
   if(noExclude) P.ex=0;
   const modes=Object.keys(TSM);
   modal(`<h3>${esc(name)}</h3>`+(noExclude?'':'<label><input type="checkbox" id="fx">暗記済みは除外</label>')
     +'<div class="rg" style="margin-top:6px"><input class="num" id="fn" type="number" inputmode="numeric" min="1"> 語 / <span id="fX"></span>語</div>'
-    +'<div class="fh2"><span class="hl">問い</span><button id="fsw" aria-label="問いと答えを入れ替える">⇄</button><span>答え</span></div>'
-    +modes.map(m=>`<label class="rowm"><input type="radio" name="tm" value="${m}"><span class="g" data-q="${m}"></span></label>`).join('')
+    +'<div class="gt" style="display:block">問い ⇄ 答え（⇄を押すと、その行だけ左右が入れ替わります）</div>'
+    +modes.map(m=>`<button type="button" class="mrow" data-m="${m}"></button>`).join('')
     +'<div class="gt" style="display:block">出題形式</div><label><input type="radio" name="tf" value="choice">選択問題</label><label><input type="radio" name="tf" value="write">筆記問題</label>'
     +'<button class="sb wide pri" id="tgo">テストを開始</button>',o=>{
-    const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#tgo'), sw=o.querySelector('#fsw');
+    const fx=o.querySelector('#fx'), fn=o.querySelector('#fn'), go=o.querySelector('#tgo');
     const avail=()=>getNos().filter(n=>!(P.ex&&has(n,'mem'))).length;
     const clamp=()=>{ const X=avail(); o.querySelector('#fX').textContent=X; const v=parseInt(fn.value,10);
       if(!isNaN(v)&&v>X) fn.value=X; if(!isNaN(v)&&v<1&&X>0) fn.value=1; go.disabled=X===0; };
-    const labels=()=>{ modes.forEach(m=>{ const d=TSM[m], s=P.swap&&d[2]; o.querySelector(`[data-q=${m}]`).innerHTML=rowTxt(d,s);
-        o.querySelector(`input[name=tm][value=${m}]`).checked=P.mode===m; });
-      sw.disabled=!TSM[P.mode][2];
-      const forced=(P.mode==='hm'||P.mode==='hmain')&&!P.swap, f=forced?'choice':P.fmt;   // 答えが意味のときは選択問題に固定
+    const labels=()=>{ modes.forEach(m=>{ const b=o.querySelector(`.mrow[data-m=${m}]`); b.innerHTML=rowTxt(TSM[m],P.sw[m]); b.classList.toggle('sel',P.mode===m); });
+      const forced=(P.mode==='hm'||P.mode==='hmain')&&!P.sw[P.mode], f=forced?'choice':P.fmt;   // 答えが意味のときは選択問題に固定
       o.querySelector('input[name=tf][value=write]').disabled=forced;
       o.querySelectorAll('input[name=tf]').forEach(r=>r.checked=r.value===f); };
     if(fx){ fx.checked=!!P.ex; fx.onchange=()=>{ P.ex=fx.checked?1:0; fn.value=avail(); clamp(); }; }
     fn.value=avail(); clamp(); labels();
-    o.querySelectorAll('input[name=tm]').forEach(r=>r.onchange=()=>{ P.mode=r.value; labels(); });
+    o.addEventListener('click',e=>{ const b=e.target.closest('.mrow'); if(!b) return; const m=b.dataset.m;
+      if(e.target.closest('.gs')&&TSM[m][2]) P.sw[m]=P.sw[m]?0:1;
+      P.mode=m; labels(); });
     o.querySelectorAll('input[name=tf]').forEach(r=>r.onchange=()=>{ P.fmt=r.value; labels(); });
-    sw.onclick=()=>{ P.swap=P.swap?0:1; labels(); };
     fn.oninput=clamp;
     go.onclick=()=>{ const X=avail(); let n=parseInt(fn.value,10); if(isNaN(n)||n>X) n=X; if(n<1) n=1;
-      D.pref.ts={mode:P.mode,swap:P.swap,fmt:P.fmt,ex:P.ex}; save(); o.remove();
-      startTs(getNos,{mode:P.mode,swap:P.swap,fmt:P.fmt,ex:P.ex,n},rec); };
+      D.pref.ts={mode:P.mode,sw:P.sw,fmt:P.fmt,ex:P.ex}; save(); o.remove();
+      startTs(getNos,{mode:P.mode,swap:P.sw[P.mode]||0,fmt:P.fmt,ex:P.ex,n},rec); };
   });
 }
 
