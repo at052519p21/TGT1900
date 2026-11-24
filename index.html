@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&display=swap">
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
 <div id="msg" hidden></div>
@@ -21,6 +21,7 @@
   <button class="hb" data-go="card"><span class="c"><svg class="ico" viewBox="0 0 24 24"><rect x="3" y="6" width="13" height="15" rx="3" transform="rotate(-10 9.5 13.5)"/><rect x="9" y="3" width="13" height="15" rx="3" transform="rotate(10 15.5 10.5)" fill="#fff"/></svg></span>フラッシュカード</button>
   <button class="hb" data-go="test"><span class="c"><svg class="ico" viewBox="0 0 24 24"><path d="M4 20l1-4L16 5l3 3L8 19z"/><path d="M14 7l3 3"/></svg></span>テスト</button>
 </div>
+  <div class="ver">段階③ フラッシュカード（エフェクト追加）</div>
   <button class="lnk" id="bkBtn">バックアップ</button>
 </section>
 
@@ -58,6 +59,8 @@
     <div id="fcEnd" hidden></div>
   </div>
   <div class="fcnote">タップでめくる／←要復習　→暗記済み　↑スキップ</div>
+  <div id="fcFlash"></div>
+  <div id="fcFx"></div>
   <button id="fcUndo" aria-label="1つ前に戻る"><svg class="ico" viewBox="0 0 24 24"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg></button>
 </section>
 
@@ -88,6 +91,6 @@
     <div class="pi" data-m="part"><span class="ck"></span>部分一致</div>
   </div>
 </div>
-<script src="app.js"></script>
+<script src="app.js?v=4"></script>
 </body>
 </html>
