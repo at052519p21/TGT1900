@@ -360,13 +360,23 @@ function startFc(getNos,o,rec,deckNos){
   if(location.hash==='#fcp') route(); else location.hash='#fcp';
 }
 function setTagOn(n,k){ let v=(D.tags[n]||0)|BIT[k]; v&=~(k==='mem'?BIT.rev:BIT.mem); D.tags[n]=v; save(); }
+// 分類のエフェクト（アイコンがポンと出て、画面が一瞬その色に光る。もう一方の印が外れたときは一言添える）
+function fcFx(act,note){
+  const fx=$('fcFx'), fl=$('fcFlash'), rev=act==='rev', col=rev?'var(--red)':'var(--blue)';
+  fx.style.color=col; fl.style.background=col;
+  fx.innerHTML=IC[act]+`<b>${rev?'要復習':'暗記済み'}</b>`+(note?`<small>${note}</small>`:'');
+  [fx,fl].forEach(e=>{ e.classList.remove('go'); void e.offsetWidth; e.classList.add('go'); });
+  if(navigator.vibrate) navigator.vibrate(rev?[25,40,25]:25);
+}
 function fcAct(act,dx,dy){
   if(fcBusy||!FC||FC.i>=FC.deck.length) return; fcBusy=true;
   const c=$('fcCard'), n=FC.deck[FC.i];
   c.style.transition='transform .18s'; c.style.transform=`translate(${dx*520}px,${dy*520}px) rotate(${dx*18}deg)`;
   setTimeout(()=>{
-    FC.hist.push({n,prev:D.tags[n]||0,act});
-    if(act!=='skip') setTagOn(n,act);
+    const pv=D.tags[n]||0;
+    FC.hist.push({n,prev:pv,act});
+    if(act!=='skip'){ setTagOn(n,act);
+      fcFx(act,act==='mem'&&(pv&BIT.rev)?'要復習を外しました':act==='rev'&&(pv&BIT.mem)?'暗記済みを外しました':''); }
     FC.cnt[act]++; if(act==='rev') FC.revNos.push(n);
     FC.i++; FC.flip=false; fcBusy=false; fcShow();
   },180);
